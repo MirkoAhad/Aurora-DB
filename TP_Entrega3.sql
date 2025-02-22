@@ -1,4 +1,17 @@
-﻿-------------------------------
+/*
+modificar empleado, 
+modificar precio producto, 
+modificar sucursal, 
+modificar cliente, 
+eliminar factura,
+eliminar categoria,
+eliominar producto
+eliminar empleado
+eliminar venta
+eliminar detalle venta
+*/
+
+-------------------------------
 -- Grupo:06
 -- Chacón Mirko Facundo - 43444942
 -- Giannni Pérez, Gabriel Idelmar- 45614379
