@@ -72,18 +72,17 @@ CREATE TABLE Articulo.Producto (
 );
 
 CREATE TABLE Persona.Empleado (
-    Id_Emp INT IDENTITY (1,1) PRIMARY KEY,
-    Nombre VARCHAR(15) NOT NULL,
-    Apellido VARCHAR(15) NOT NULL,
+    Legajo int primary key,
+    Nombre VARCHAR(30) NOT NULL,
+    Apellido VARCHAR(25) NOT NULL,
     DNI INT NOT NULL,
-    Legajo INT UNIQUE NOT NULL,
-    Direccion VARCHAR(30),
+    Direccion VARCHAR(50),
     Cargo VARCHAR(20),
-    Email_Personal VARCHAR(40),
-    Email_Empresaa VARCHAR(40),
-    Cuil INT,
+    Email_Personal VARCHAR(100),
+    Email_Empresa VARCHAR(100),
+    Cuil INT DEFAULT 0,
     Turno CHAR(2),
-    Id_Suc INT,
+    Id_Suc INT NOT NULL,
     CONSTRAINT Fk_Suc FOREIGN KEY (Id_Suc) REFERENCES Venta.Sucursal(Id_Suc),
     CONSTRAINT CK_Leg CHECK (Legajo BETWEEN 100000 AND 999999),
     CONSTRAINT CK_Tur CHECK (Turno IN ('TM','TT','JC','TN')), 
@@ -92,7 +91,7 @@ CREATE TABLE Persona.Empleado (
 
 
 CREATE TABLE Venta.Venta_Registrada (
-    Id_VR INT IDENTITY (1,1) PRIMARY KEY,
+	Id_Pago int primary key,
     Tipo_Factura CHAR(1),
     Fecha DATE,
     Hora TIME,
@@ -105,7 +104,8 @@ CREATE TABLE Venta.Venta_Registrada (
     Id_Fac VARCHAR(11),
     Id_Cli INT,
     Id_MP INT,
-    CONSTRAINT FK_Emp FOREIGN KEY (Id_Emp) REFERENCES Persona.Empleado(Id_Emp),
+	CONSTRAINT CK_Cantidad CHECK (Cantidad > 0),
+    CONSTRAINT FK_Emp FOREIGN KEY (Id_Emp) REFERENCES Persona.Empleado(Legajo),
     CONSTRAINT FK_Fac_VR FOREIGN KEY (Id_Fac) REFERENCES Venta.Factura(Id_Fac),
     CONSTRAINT FK_Cli FOREIGN KEY (Id_Cli) REFERENCES Persona.Cliente(Id_Cli),
     CONSTRAINT FK_MP FOREIGN KEY (Id_MP) REFERENCES Venta.Medio_Pago(Id_MP),
@@ -113,21 +113,25 @@ CREATE TABLE Venta.Venta_Registrada (
    
 );
 
+
 CREATE TABLE Venta.Detalle_Venta (
     Id_Ven VARCHAR(11) PRIMARY KEY,
-    Cantidad INT,
-    Precio INT,
-    Subtotal INT,
-    Id_Prod INT,
-    Id_Fac VARCHAR(11),
-    Id_Cli INT,
-    Id_MP INT,
+    Cantidad INT not null,
+    Precio Decimal(10,2) not null,
+    Subtotal Decimal(10,2) not null,
+    Id_Prod INT not null,
+    Id_Fac VARCHAR(11) not null,
+    Id_Cli INT not null,
+    Id_MP INT not null,
+
+	CONSTRAINT CK_Cantidad_Detalle CHECK (Cantidad >= 0),
+	CONSTRAINT CK_Precio CHECK (Precio > 0),
+	CONSTRAINT CK_Subtotal CHECK (Subtotal > 0),
     CONSTRAINT FK_Prod FOREIGN KEY (Id_Prod) REFERENCES Articulo.Producto(Id_Prod),
     CONSTRAINT FK_Fac_DV FOREIGN KEY (Id_Fac) REFERENCES Venta.Factura(Id_Fac),
     CONSTRAINT FK_Cli_Venta FOREIGN KEY (Id_Cli) REFERENCES Persona.Cliente(Id_Cli),
     CONSTRAINT FK_MP_Venta FOREIGN KEY (Id_MP) REFERENCES Venta.Medio_Pago(Id_MP)
 );
-
 
 
 CREATE TABLE Venta.Nota_De_Credito (
@@ -326,6 +330,86 @@ IF NOT EXISTS (Select 1 From Articulo.Producto Where NombreProd = @NombreProd an
 		END
 END
 
+-- Para tabla Empleado
+
+
+CREATE OR ALTER PROCEDURE Persona.Insertar_Empleado
+@Legajo int,
+@Nombre VARCHAR(30),
+@Apellido VARCHAR(25),
+@DNI int,
+@Direccion VARCHAR(50),
+@Cargo VARCHAR(20),
+@Email_Personal VARCHAR(100),
+@Email_Empresa VARCHAR(100),
+@Cuil int,
+@Turno CHAR(2),
+@Id_Suc int
+AS
+BEGIN
+IF NOT EXISTS (Select 1 From Persona.Empleado Where Legajo = @Legajo)
+	BEGIN
+	insert Persona.Empleado (Legajo,Nombre,Apellido,DNI,Direccion,Cargo,Email_Personal,Email_Empresa,Cuil,Turno,Id_Suc)
+	values (@Legajo,@Nombre,@Apellido,@DNI,@Direccion,@Cargo,@Email_Personal,@Email_Empresa,@Cuil,@Turno,@Id_Suc)
+	END
+	ELSE
+		BEGIN
+		RAISERROR ('Ya existe un Empleado con este Legajo: %d en el sistema',10,2,@Legajo);
+		END
+END
+
+-- Para tabla Venta_Registrada
+
+CREATE OR ALTER PROCEDURE Venta.Insertar_VRegistrada
+@Id_Pago int,
+@Tipo_Factura CHAR(1),
+@Fecha DATE,
+@Hora TIME,
+@Tipo_Cliente VARCHAR(10),
+@Ciudad VARCHAR(20),
+@Cantidad int,
+@Producto VARCHAR(50),
+@Precio_Unitario DECIMAL (10,2),
+@Id_Emp int,
+@Id_MP int
+AS
+BEGIN
+IF NOT EXISTS (Select 1 From Venta.Venta_Registrada Where Id_Pago = @Id_Pago)
+	BEGIN
+	insert Venta.Venta_Registrada (Id_Pago,Tipo_Factura,Fecha,Hora,Tipo_Cliente,Ciudad,Cantidad,Producto,Precio_Unitario,Id_Emp,Id_MP)
+	values (@Id_Pago,@Tipo_Factura,@Fecha,@Hora,@Tipo_Cliente,@Ciudad,@Cantidad,@Producto,@Precio_Unitario,@Id_Emp,@Id_MP);
+	END
+	ELSE
+		BEGIN
+		RAISERROR('Ya se uso ese Id: %s',10,2,@Id_Pago);
+		END
+END
+
+drop table venta.venta_registrada
+
+-- Para la tabla Detalle_Venta
+
+CREATE OR ALTER PROCEDURE Venta.Insertar_Detalle_Venta
+@Id_Ven varchar(11),
+@Cantidad int,
+@Precio Decimal (10,2),
+@Subtotal Decimal (10,2),
+@Id_Prod int,
+@Id_Fac varchar(11),
+@Id_Cli int,
+@Id_MP int
+AS
+BEGIN
+IF NOT EXISTS (Select 1 From Venta.Detalle_Venta Where Id_Ven = @Id_Ven )
+	BEGIN
+	insert Venta.Detalle_Venta (Id_Ven,Cantidad,Precio,Subtotal,Id_Prod,Id_Fac,Id_Cli,Id_MP)
+	values (@Id_Ven,@Cantidad,@Precio,@Subtotal,@Id_Prod,@Id_Fac,@Id_Cli,@Id_MP);
+	END
+	ELSE 
+		BEGIN
+		RAISERROR('Id en uso: %s',10,2,@Id_Ven);
+		END
+END
 
 
 
@@ -358,3 +442,5 @@ from Venta.Factura
 exec Articulo.Insertar_Categoria 'agua','Almacen'
 select *
 from Articulo.Categoria
+
+-- Importacion De Archivos
