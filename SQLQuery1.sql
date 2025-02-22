@@ -1,4 +1,4 @@
-CREATE DATABASE supermercado;
+CREATE DATABASE supermercado; --texto de prueba
 go
 USE supermercado;
 go
@@ -328,4 +328,4 @@ ASDF
 ASDF
 A
 SDF
-/*
+/* 
