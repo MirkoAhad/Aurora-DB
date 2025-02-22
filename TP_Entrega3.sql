@@ -9,6 +9,7 @@ eliominar producto
 eliminar empleado
 eliminar venta
 eliminar detalle venta
+......
 */
 
 -------------------------------
