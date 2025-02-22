@@ -12,15 +12,22 @@ go
 -- usamos el go despues de cada linea para aseguranos que cuando ejecutemos todas juntas, se ejecute correctamente cada una.
 
 
+drop table info.sucursal
+
 CREATE TABLE info.sucursal(
-	Id_sucursal INT IDENTITY(1,1) primary key,
-	Ciudad VARCHAR(50),
-	ReemplazarPor VARCHAR(50),
-	Direccion VARCHAR(100),
-	Horario VARCHAR(50),
-	Telefono CHAR(9),
-	FechaBaja DATETIME -- si fechabaja es NULL, es porque no esta dado de baja.
-);
+	
+		id			int identity(1,1),
+		ciudad		varchar(40),
+		localidad   varchar(40),
+		direccion	varchar(150),
+		horario		varchar(100),
+		telefono	VARCHAR(15),
+		baja		bit default 1,
+		constraint CK_telefono check (
+	        telefono LIKE '[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]' OR			
+		    telefono LIKE '[0-9][0-9][0-9]-[0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]'
+		)
+	);
 GO
 
 CREATE TABLE info.empleados(
@@ -164,8 +171,8 @@ GO
 
 -- PROCEDURES
 
-DROP PROCEDURE ImportarDesdeExcel
+DROP PROCEDURE IF EXISTS ImportarDesdeExcel
 GO
 
-DROP PROCEDURE ImportarCSV
+DROP PROCEDURE IF EXISTS ImportarCSV
 GO

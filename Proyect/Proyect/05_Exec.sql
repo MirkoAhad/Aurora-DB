@@ -13,6 +13,16 @@ EXEC ImportarCSV
 
 --________________________________________EXCEL______________________________
 
+
+EXEC info.SucursalImportar
+	@data_file_path = 'C:\Users\ahadm\OneDrive\Escritorio\TP_integrador_Archivos\Informacion_complementaria.xlsx';
+GO
+
+
+DROP PROCEDURE info.SucursalImportar
+
+
+
 EXEC ImportarDesdeExcel 
     @RutaArchivo = 'C:\Users\ahadm\Downloads\TP_integrador_Archivos\Productos\Electronic accessories.xlsx',
 	@tabla_Variable = 'productos.electronic_accesories',

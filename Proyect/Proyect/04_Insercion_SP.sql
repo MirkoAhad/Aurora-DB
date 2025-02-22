@@ -10,53 +10,97 @@ ROWTERMINATOR = '0x0A') -- Define el delimitador de filas
 */
 
 
+																--Creamos SP para importar la sucursal
+
+
+
 CREATE OR ALTER PROCEDURE info.SucursalImportar
-	@data_file_path VARCHAR(MAX)
+    @data_file_path VARCHAR(1000)
 AS
 BEGIN
-	BEGIN TRY
+    CREATE TABLE #sucursal
+    (
+        ciudad         VARCHAR(40) COLLATE Modern_Spanish_CI_AS,
+        reemplazar     VARCHAR(40) COLLATE Modern_Spanish_CI_AS,  
+        direccion      VARCHAR(150) COLLATE Modern_Spanish_CI_AS,
+        horario        VARCHAR(100) COLLATE Modern_Spanish_CI_AS,
+        telefono       VARCHAR(20) COLLATE Modern_Spanish_CI_AS
+    );
 
-	IF OBJECT_ID('tempdb..#tmpSucursal') IS NOT NULL
-			DROP TABLE #tmpSucursal;
+    DECLARE @sql NVARCHAR(MAX);
 
-		CREATE TABLE #tmpSucursal (
-			Ciudad VARCHAR(100),
-			ReemplazarPor VARCHAR(100),
-			Direccion VARCHAR(100),
-			Horario VARCHAR(100),
-			Telefono VARCHAR(100)
-		);
+    SET @sql = N'
+    INSERT INTO #sucursal
+    SELECT *
+    FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'',
+                    ''Excel 12.0 Xml;Database=' + @data_file_path + ''',
+                    ''SELECT * FROM [sucursal$]'');';
+	
+    EXEC sp_executesql @sql;
 
-	SET NOCOUNT ON;
+    -- Limpiar y formatear el campo 'horario'
+	
+    UPDATE #sucursal
+    SET horario = REPLACE(
+							REPLACE(
+									REPLACE(
+										REPLACE(
+											REPLACE(LTRIM(RTRIM(horario)), '?', ' '),  -- Reemplazar el carácter '?' por un espacio
+												 '-', '–'  -- Reemplazar el guion corto con guion largo
+												),
+											 'a.m.', 'a.m.'  -- Asegurar que no haya espacios dentro de 'a.m.'
+											),
+									 'p.m.', 'p.m.'  -- Asegurar que no haya espacios dentro de 'p.m.'
+									 ),
+						'–', ' – '  -- Asegurar espacios antes y después del guion largo
+						);
+	
+    -- Contar registros en la tabla sucursal antes del MERGE
+    DECLARE @countBefore INT, @countAfter INT;
+    SELECT @countBefore = COUNT(*) FROM info.sucursal;
+	-- Insertar o actualizar en la tabla sucursal
+    MERGE info.sucursal AS suc
+    USING #sucursal AS source
+    ON suc.ciudad = source.ciudad 
+    AND suc.localidad = source.reemplazar  -- Asegúrate de usar 'reemplazar' en lugar de 'localidad'
+    AND suc.direccion = source.direccion
 
-	DECLARE @sql NVARCHAR(MAX);
+    WHEN MATCHED AND (suc.horario <> source.horario OR suc.telefono <> source.telefono) THEN 
+        -- Actualizar solo si el horario o el teléfono son distintos
+        UPDATE SET 
+            suc.horario = source.horario,
+            suc.telefono = source.telefono
+    WHEN NOT MATCHED THEN 
+        -- Si no existe, insertar un nuevo registro
+        INSERT (ciudad, localidad, direccion, horario, telefono)
+        VALUES (source.ciudad, source.reemplazar, source.direccion, 
+                source.horario, source.telefono);
+    -- Contar registros en la tabla sucursal
+    SELECT @countAfter = COUNT(*) FROM info.sucursal;
 
-	SET @sql = '
-			INSERT INTO #tmpSucursal (Ciudad,RemplazarPor,Direccion,Horario,Telefono)
-			SELECT * 
-			FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'',
-			 ''Excel 12.0;Database='++ @data_file_path ++''',
-			 ''select * from [sucursal$]'');
-		';
-		EXEC sp_executesql @sql;
+    -- Determinar si hubo inserciones y registrar si hubo cambios en las actualizaciones
+    IF @countAfter > @countBefore
+    BEGIN
+        DECLARE @mensajeInsercion VARCHAR(1000);
+        SET @mensajeInsercion = FORMATMESSAGE('Inserción de %d nueva(s) sucursal(es)', @countAfter - @countBefore);
+    END
 
-		INSERT INTO info.sucursal(Ciudad,ReemplazarPor,Direccion,Horario,Telefono) 
-		SELECT tmp.Ciudad,tmp.ReemplazarPor,tmp.Direccion,tmp.Horario,tmp.Telefono
-		FROM #tmpSucursal tmp
-		WHERE NOT EXISTS
-			(SELECT 1 FROM info.sucursal s
-			WHERE tmp.ReemplazarPor = s.Ciudad COLLATE Modern_Spanish_CI_AS
-			AND tmp.Direccion = s.direccion COLLATE Modern_Spanish_CI_AS)
-	END TRY
-	BEGIN CATCH
-		PRINT 'Error al importar Excel Sucursal' + ERROR_MESSAGE();
-	END CATCH
+    DROP TABLE #sucursal;
 
-		DROP TABLE IF EXISTS #tmpSucursal;
 END;
 GO
 
+ select *
+ from info.sucursal
+
+
+EXEC info.SucursalImportar
+	@data_file_path = 'C:\Users\ahadm\OneDrive\Escritorio\TP_integrador_Archivos\Informacion_complementaria.xlsx';
+GO
+
 DROP PROCEDURE info.SucursalImportar
+
+
 
 
 CREATE OR ALTER PROCEDURE info.EmpleadosImportar
