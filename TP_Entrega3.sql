@@ -1,12 +1,12 @@
 /*
 modificar empleado, 
-modificar precio producto, 
-modificar sucursal, 
+modificar precio producto (creado), 
+modificar sucursal (creado), 
 modificar cliente, 
 eliminar factura,
-eliminar categoria,
-eliominar producto
-eliminar empleado
+eliminar categoria (creado),
+eliominar producto (creado)
+eliminar empleado (creado)
 eliminar venta
 eliminar detalle venta
 ......
