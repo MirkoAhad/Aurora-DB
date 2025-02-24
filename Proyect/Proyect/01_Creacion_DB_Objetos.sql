@@ -16,7 +16,7 @@ drop table info.sucursal
 
 CREATE TABLE info.sucursal(
 	
-		id			int identity(1,1),
+		id			int identity(1,1) primary key,
 		ciudad		varchar(40),
 		localidad   varchar(40),
 		direccion	varchar(150),
@@ -30,23 +30,25 @@ CREATE TABLE info.sucursal(
 	);
 GO
 
+drop table info.empleados
+
 CREATE TABLE info.empleados(
-	Legajo CHAR(7) primary key,
-		CONSTRAINT CK_LegajoEmpleado CHECK ( Legajo LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9]'),
-	Nombre VARCHAR(25),
+	Legajo CHAR(6) primary key,
+		CONSTRAINT CK_LegajoEmpleado CHECK ( Legajo LIKE '[0-9][0-9][0-9][0-9][0-9][0-9]'),
+	Nombre VARCHAR(50),
 	Apellido VARCHAR(25),
-	DNI CHAR(8) UNIQUE,
+	DNI VARCHAR(50),
 		CONSTRAINT CK_DNIEmpleado CHECK ( DNI LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'),
 	emailpersonal VARCHAR(50),
 		CONSTRAINT CK_EmailPersonalEmpleado CHECK ( emailpersonal LIKE '%_@__%.__%'),
 	emailempresa VARCHAR(50),
 		CONSTRAINT CK_EmailEmpresaEmpleado CHECK ( emailempresa LIKE '%_@__%.__%'),
-	CUIL CHAR (13),
-		CONSTRAINT CK_CuilEmpleado CHECK ( CUIL LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'),
+	CUIL VARCHAR (50),
+	--	CONSTRAINT CK_CuilEmpleado CHECK ( CUIL LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'),
 	Cargo VARCHAR (19),
 		CONSTRAINT CK_Cargo CHECK (Cargo IN ('Cajero','Supervisor','Gerente de sucursal')),
-	FKSucursal INT not null,
-		CONSTRAINT FK_Sucursal FOREIGN KEY (FKSucursal) REFERENCES info.sucursal(Id_sucursal),
+	FKSucursal INT,
+		CONSTRAINT FK_Sucursal FOREIGN KEY (FKSucursal) REFERENCES info.sucursal(id),
 	Turno VARCHAR (16),
 		CONSTRAINT CK_TURNO CHECK ( Turno IN ('TT','TM','Jornada completa')),
 	FechaBaja DATETIME,

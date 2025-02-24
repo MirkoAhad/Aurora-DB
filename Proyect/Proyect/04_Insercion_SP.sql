@@ -38,7 +38,7 @@ BEGIN
 	
     EXEC sp_executesql @sql;
 
-    -- Limpiar y formatear el campo 'horario'
+    -- Limpiar el campo 'horario'
 	
     UPDATE #sucursal
     SET horario = REPLACE(
@@ -54,38 +54,12 @@ BEGIN
 									 ),
 						'–', ' – '  -- Asegurar espacios antes y después del guion largo
 						);
-	
-    -- Contar registros en la tabla sucursal antes del MERGE
-    DECLARE @countBefore INT, @countAfter INT;
-    SELECT @countBefore = COUNT(*) FROM info.sucursal;
-	-- Insertar o actualizar en la tabla sucursal
-    MERGE info.sucursal AS suc
-    USING #sucursal AS source
-    ON suc.ciudad = source.ciudad 
-    AND suc.localidad = source.reemplazar  -- Asegúrate de usar 'reemplazar' en lugar de 'localidad'
-    AND suc.direccion = source.direccion
 
-    WHEN MATCHED AND (suc.horario <> source.horario OR suc.telefono <> source.telefono) THEN 
-        -- Actualizar solo si el horario o el teléfono son distintos
-        UPDATE SET 
-            suc.horario = source.horario,
-            suc.telefono = source.telefono
-    WHEN NOT MATCHED THEN 
-        -- Si no existe, insertar un nuevo registro
-        INSERT (ciudad, localidad, direccion, horario, telefono)
-        VALUES (source.ciudad, source.reemplazar, source.direccion, 
-                source.horario, source.telefono);
-    -- Contar registros en la tabla sucursal
-    SELECT @countAfter = COUNT(*) FROM info.sucursal;
+	INSERT INTO  info.sucursal(ciudad,direccion,localidad,horario,telefono) --agregamos los estudios nuevos a la tabla de estudios.
+	SELECT DISTINCT s.ciudad, s.direccion, s.reemplazar, s.horario, s.telefono
+	FROM #sucursal s
 
-    -- Determinar si hubo inserciones y registrar si hubo cambios en las actualizaciones
-    IF @countAfter > @countBefore
-    BEGIN
-        DECLARE @mensajeInsercion VARCHAR(1000);
-        SET @mensajeInsercion = FORMATMESSAGE('Inserción de %d nueva(s) sucursal(es)', @countAfter - @countBefore);
-    END
-
-    DROP TABLE #sucursal;
+	DROP TABLE #sucursal
 
 END;
 GO
@@ -140,10 +114,16 @@ BEGIN
 		EXEC sp_executesql @sql;
 	
 		INSERT INTO info.empleados(Legajo,Nombre,Apellido,DNI,emailpersonal,emailempresa,CUIL,Cargo,Turno,FKSucursal)
-			(SELECT tmp.Legajo,tmp.Nombre,tmp.Apellido,tmp.DNI,REPLACE(REPLACE(tmp.emailpersonal, ' ', ''), CHAR(9), ''),
-			REPLACE(REPLACE(tmp.emailempresa, ' ', ''), CHAR(9), ''),tmp.CUIL,tmp.Cargo,tmp.Turno,
-			(SELECT Id_sucursal FROM info.sucursal WHERE Ciudad = tmp.Ciudad_sucursal COLLATE Modern_Spanish_CS_AS)
-		FROM #tmpEmpleado tmp
+			(SELECT tmp.Legajo,
+					REPLACE(tmp.Nombre, CHAR(9), ' '),
+					REPLACE(tmp.Apellido, CHAR(9), ' '),
+					CAST(CAST(tmp.DNI  AS FLOAT) AS bigint),
+					REPLACE(REPLACE(tmp.emailpersonal, ' ', ''), CHAR(9), ''),
+					REPLACE(REPLACE(tmp.emailempresa, ' ', ''), CHAR(9), ''),
+					CAST(CAST(tmp.DNI  AS FLOAT) AS bigint),
+					tmp.Cargo,tmp.Turno,
+			(SELECT id FROM info.sucursal WHERE localidad = tmp.Ciudad_sucursal COLLATE Modern_Spanish_CS_AS)
+		FROM #tmpEmpleado tmp 
 		WHERE tmp.Legajo IS NOT NULL AND NOT EXISTS (SELECT 1 FROM info.empleados e WHERE tmp.Legajo = e.Legajo))
 
 	END TRY
@@ -156,6 +136,15 @@ END;
 GO
 
 
+ select *
+ from info.empleados
+
+
+EXEC info.EmpleadosImportar
+	@data_file_path = 'C:\Users\ahadm\OneDrive\Escritorio\TP_integrador_Archivos\Informacion_complementaria.xlsx';
+GO
+
+ROUND(((99 - 1) * RAND() + 1), 0) +  + ROUND(((9 - 1) * RAND() + 1), 0)
 
 CREATE OR ALTER PROCEDURE info.CategoriaImportar
 	@data_file_path VARCHAR(MAX)
