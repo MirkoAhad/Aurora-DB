@@ -144,7 +144,9 @@ EXEC info.EmpleadosImportar
 	@data_file_path = 'C:\Users\ahadm\OneDrive\Escritorio\TP_integrador_Archivos\Informacion_complementaria.xlsx';
 GO
 
-ROUND(((99 - 1) * RAND() + 1), 0) +  + ROUND(((9 - 1) * RAND() + 1), 0)
+--ROUND(((99 - 1) * RAND() + 1), 0) +  + ROUND(((9 - 1) * RAND() + 1), 0)
+
+DROP PROCEDURE info.CategoriaImportar
 
 CREATE OR ALTER PROCEDURE info.CategoriaImportar
 	@data_file_path VARCHAR(MAX)
@@ -156,8 +158,8 @@ BEGIN
 				DROP TABLE #tmpCategoria;
 
 			CREATE TABLE #tmpCategoria (
+				Linea_De_Producto VARCHAR(100),
 				NombreCategoria VARCHAR(100),
-				Linea_De_Producto VARCHAR(100)
 				);
 
 			SET NOCOUNT ON;
@@ -165,7 +167,7 @@ BEGIN
 			DECLARE @sql NVARCHAR(MAX);
 
 			SET @sql = '
-				INSERT INTO #tmpCategoria(NombreCategoria,Linea_De_Producto)
+				INSERT INTO #tmpCategoria(Linea_De_Producto,NombreCategoria)
 				SELECT * 
 				FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'',
 				 ''Excel 12.0;Database='++ @data_file_path ++''',
@@ -173,9 +175,9 @@ BEGIN
 			';
 			EXEC sp_executesql @sql;
 
-			INSERT INTO info.categoria(NombreCategoria,Linea_De_Producto)
+			INSERT INTO info.categoria(Linea_De_Producto,NombreCategoria)
 			(
-				SELECT tmp.NombreCategoria, tmp.Linea_De_Producto
+				SELECT tmp.Linea_De_Producto, tmp.NombreCategoria
 				FROM #tmpCategoria tmp
 				WHERE NOT EXISTS(
 					SELECT 1
@@ -191,6 +193,13 @@ BEGIN
 END;
 GO
 
+ select *
+ from info.categoria
+
+
+EXEC info.CategoriaImportar
+	@data_file_path = 'C:\Users\ahadm\OneDrive\Escritorio\TP_integrador_Archivos\Informacion_complementaria.xlsx';
+GO
 
 
 CREATE OR ALTER PROCEDURE info.CatalogoImportar
@@ -206,8 +215,8 @@ BEGIN
 				ID INT,
 				Category VARCHAR(100),
 				Nombre VARCHAR(100),
-				Price DECIMAL(100,2),
-				Reference_price DECIMAL(100,2),
+				Price DECIMAL(10,2),
+				Reference_price DECIMAL(10,2),
 				Reference_unit VARCHAR(100),
 				Fecha DATETIME
 			);
@@ -229,23 +238,6 @@ BEGIN
 			);
 	';
 	EXEC sp_executesql @sql;
-
-	WITH cte_Dup
-	AS
-	(
-		SELECT tmp.ID, ROW_NUMBER() OVER (PARTITION BY tmp.Nombre, tmp.Reference_price, tmp.Reference_unit, tmp.Price ORDER BY tmp.Fecha) as Duplicados
-		FROM #tmpCatalogo tmp
-	)
-
-	/*SELECT *
-	FROM cte_Dup
-	WHERE Duplicados > 1
-	*/
-
-	DELETE FROM cte_Dup
-	WHERE Duplicados > 1
-	
-	--UPDATE #tmpCatalogo
 
 	INSERT INTO productos.producto(Nombre,PrecioUnitario,Precio_Referencia,Unidad_Referencia,Fecha,FKCategoria)
 	(
@@ -271,8 +263,18 @@ BEGIN
 END;
 GO
 
+select *
+from productos.producto
 
---__________________________________PRODUCTOS IMPORTADOS__________________________
+
+EXEC info.CatalogoImportar
+	@data_file_path = 'C:\Users\ahadm\OneDrive\Escritorio\TP_integrador_Archivos\Productos\catalogo.csv';
+GO
+
+DROP PROCEDURE info.CatalogoImportar
+
+
+--______________________________________________________________________________________________________________________________________________________________________________
 
 CREATE OR ALTER PROCEDURE productos.ProductosImport
 	@data_file_path VARCHAR(MAX)

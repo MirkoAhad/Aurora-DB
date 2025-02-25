@@ -55,27 +55,38 @@ CREATE TABLE info.empleados(
 );
 GO
 
+--info complementaria, clasificacion de productos
+
+drop table info.categoria
 
 CREATE TABLE info.categoria(
 	ID_categoria int identity(1,1) primary key not null,
+	Linea_De_Producto VARCHAR(100),
 	NombreCategoria VARCHAR(100),
-	Linea_De_Producto VARCHAR(20),
 	FechaBaja DATETIME
 );
 GO
+
+
+-- catalogo:
+
+
+drop table productos.producto
 
 CREATE TABLE productos.producto (
 	ID_producto int identity(1,1) primary key not null, -- identity para valores autoincrementales (empieza en 1, aumenta 1)
     Nombre VARCHAR(200),
     PrecioUnitario DECIMAL(10,2),	-- Decimal (6 dígitos en total, puede tener hasta 2 decimales)
     Precio_Referencia DECIMAL(10,2),
-    Unidad_Referencia VARCHAR(10),
+    Unidad_Referencia VARCHAR(100),
     Fecha DATETIME, -- se utiliza para almacenar valores de fecha y hora
 	FKCategoria INT NOT NULL,
 		CONSTRAINT FK_Categoria FOREIGN KEY (FKCategoria) REFERENCES info.categoria(ID_categoria),
 	FechaBaja DATETIME
 );
 GO
+
+
 
 CREATE TABLE ventas.metodo_de_pago(
 	ID_metodo_de_pago int identity(1,1) primary key not null,
@@ -94,6 +105,8 @@ CREATE TABLE info.cliente(
 	FechaBaja DATETIME
 );
 GO
+
+--ventas registradas:
 
 CREATE TABLE ventas.factura (
 	ID_factura int identity(1,1) primary key not null,
