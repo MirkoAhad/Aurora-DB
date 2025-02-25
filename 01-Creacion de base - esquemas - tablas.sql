@@ -17,9 +17,10 @@ create schema Venta
 
 CREATE TABLE Persona.Cliente (
     Id_Cli INT IDENTITY (1,1) PRIMARY KEY,
-    Nombre VARCHAR (30),
+    Nombre VARCHAR (30) not null,
     Genero CHAR (6) not null,
-    Tipo CHAR(6), -- le puse 6 porque MEMBER y NORMAL son 6 letras
+	DNI int not null,
+    Tipo CHAR(11) not null,
 	Baja Date default null,
 	CONSTRAINT CK_Genero CHECK (Genero IN ('Female','Male'))
 ); 
@@ -30,7 +31,7 @@ CREATE TABLE Venta.Medio_Pago (
 	Baja Date default null
 );
 
-DROP TABLE Venta.Factura (
+CREATE TABLE Venta.Factura (
     Id INT IDENTITY (1,1) PRIMARY KEY,
 	NumeroFactura CHAR(11) UNIQUE,
     Tipo CHAR(1),
@@ -81,7 +82,7 @@ CREATE TABLE Persona.Empleado (
     Cargo VARCHAR(20),
     Email_Personal VARCHAR(100),
     Email_Empresa VARCHAR(100),
-    Cuil INT DEFAULT 0,
+    Cuil varchar(13) DEFAULT 0,
     Turno CHAR(2),
     Id_Suc INT NOT NULL,
 	Estado BIT NOT NULL DEFAULT 1,
@@ -93,7 +94,7 @@ CREATE TABLE Persona.Empleado (
 
 
 CREATE TABLE Venta.Venta_Registrada (
-	Id_Pago int primary key,
+	Id_Pago bigint primary key,
     Fecha DATE,
     Hora TIME,
     Ciudad VARCHAR(20),
@@ -118,7 +119,7 @@ CREATE TABLE Venta.Detalle_Venta (
     PrecioUnitario Decimal(10,2) not null,
     Subtotal Decimal(10,2) not null,
     Id_Prod INT not null,
-	Id_Pago INT not null,
+	Id_Pago BigInt not null,
 	CONSTRAINT PK_Detalle_Venta PRIMARY KEY (Id_Prod, Id_Pago), -- saque ID_Det, me parecio que era mejor usar una PK compuesta
 	CONSTRAINT CK_Cantidad_Detalle CHECK (Cantidad > 0),
 	CONSTRAINT CK_PrecioUnitario CHECK (PrecioUnitario > 0),
@@ -140,3 +141,4 @@ CREATE TABLE Venta.Nota_De_Credito (
     CONSTRAINT FK_Fac_Nota FOREIGN KEY (Id_Fac) REFERENCES Venta.Factura(Id) ON DELETE CASCADE,
 	CONSTRAINT PK_IdNota PRIMARY KEY (Id, Id_Fac) -- Por ser debil deberia tener una Pk compuesta
 );
+
