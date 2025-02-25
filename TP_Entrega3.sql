@@ -1,14 +1,14 @@
 /*
-modificar empleado, 
+modificar empleado (creado)
 modificar precio producto (creado), 
 modificar sucursal (creado), 
-modificar cliente, 
-eliminar factura,
+XX-modificar cliente (creo que no vale la pena viendo los atributos disponibles)
+eliminar factura (creado),
 eliminar categoria (creado),
-eliominar producto (creado)
+eliminar producto (creado)
 eliminar empleado (creado)
-eliminar venta
-eliminar detalle venta
+eliminar venta (creado)
+??-eliminar detalle venta (mmm no se )
 ......
 */
 
@@ -23,13 +23,16 @@ eliminar detalle venta
 -- Creacion de la BDD --
 
 create database Com1353G06
+
 use master
 drop database Com1353G06
+
+
 Use Com1353G06
 
 -- Creacion de schemas --
-create schema Persona
-create schema Articulo
+create schema Persona;
+create schema Articulo;
 create schema Venta
 create schema 
 -- Creacion de tablas --
@@ -51,27 +54,32 @@ CREATE TABLE Venta.Medio_Pago (
 );
 
 CREATE TABLE Venta.Factura (
-    Id_Fac VARCHAR(11) PRIMARY KEY,
+    Id INT IDENTITY (1,1) PRIMARY KEY,
+	NumeroFactura CHAR(11) UNIQUE,
     Tipo CHAR(1),
     Fecha DATE,
     Monto NUMERIC (7,2), 
+	EstadoPago VARCHAR(17) DEFAULT 'Pendiente de pago',
+	Estado BIT DEFAULT 1, 
     CONSTRAINT CK_Tipo CHECK( Tipo IN ('A','B','C'))
 );
+
 
 CREATE TABLE  Venta.Sucursal (
     Id_Suc INT IDENTITY (1,1) PRIMARY KEY,
     Localidad VARCHAR (20) not null,
     Direccion VARCHAR(50) not null,
     Telefono CHAR(10),
+	Estado BIT NOT NULL DEFAULT 1,
     Horario varchar(44)
 );
 
 CREATE TABLE Articulo.Categoria (
     ID_Cat INT IDENTITY (1,1) PRIMARY KEY,
     Descripcion VARCHAR (30),
-    Linea_De_Producto VARCHAR(20)
+    Linea_De_Producto VARCHAR(20),
+	Estado BIT NOT NULL DEFAULT 1
 );
-
 
 CREATE TABLE Articulo.Producto (
     Id_Prod INT IDENTITY (1,1) PRIMARY KEY,
@@ -81,9 +89,11 @@ CREATE TABLE Articulo.Producto (
     Proveedor VARCHAR (40),
     Referencia_Unit Decimal (10,2),
     Referencia CHAR(2),
+	Estado BIT NOT NULL DEFAULT 1, 
     ID_Cat INT,
     CONSTRAINT FK_Cat FOREIGN KEY (ID_Cat) REFERENCES Articulo.Categoria(ID_Cat)
 );
+
 
 CREATE TABLE Persona.Empleado (
     Legajo int primary key,
@@ -97,6 +107,7 @@ CREATE TABLE Persona.Empleado (
     Cuil INT DEFAULT 0,
     Turno CHAR(2),
     Id_Suc INT NOT NULL,
+	Estado BIT NOT NULL DEFAULT 1;
     CONSTRAINT Fk_Suc FOREIGN KEY (Id_Suc) REFERENCES Venta.Sucursal(Id_Suc),
     CONSTRAINT CK_Leg CHECK (Legajo BETWEEN 100000 AND 999999),
     CONSTRAINT CK_Tur CHECK (Turno IN ('TM','TT','JC','TN')), 
@@ -111,22 +122,22 @@ CREATE TABLE Venta.Venta_Registrada (
     Hora TIME,
     Tipo_Cliente VARCHAR(10),
     Ciudad VARCHAR(20),
+	Estado BIT NOT NULL DEFAULT 1,
     Cantidad INT,
     Producto VARCHAR (50),
     Precio_Unitario DECIMAL (10,2),
     Id_Emp INT,
-    Id_Fac VARCHAR(11),
+    Id_Fac INT,
     Id_Cli INT,
     Id_MP INT,
 	CONSTRAINT CK_Cantidad CHECK (Cantidad > 0),
     CONSTRAINT FK_Emp FOREIGN KEY (Id_Emp) REFERENCES Persona.Empleado(Legajo),
-    CONSTRAINT FK_Fac_VR FOREIGN KEY (Id_Fac) REFERENCES Venta.Factura(Id_Fac),
+    CONSTRAINT FK_Fac_VR FOREIGN KEY (Id_Fac) REFERENCES Venta.Factura(Id),
     CONSTRAINT FK_Cli FOREIGN KEY (Id_Cli) REFERENCES Persona.Cliente(Id_Cli),
     CONSTRAINT FK_MP FOREIGN KEY (Id_MP) REFERENCES Venta.Medio_Pago(Id_MP),
-    CONSTRAINT CK_TipoCl CHECK (Tipo_Cliente IN ('Member','Normal')),
+    CONSTRAINT CK_TipoCl CHECK (Tipo_Cliente IN ('Member','Normal'))
    
 );
-
 
 CREATE TABLE Venta.Detalle_Venta (
     Id_Ven VARCHAR(11) PRIMARY KEY,
@@ -134,15 +145,14 @@ CREATE TABLE Venta.Detalle_Venta (
     Precio Decimal(10,2) not null,
     Subtotal Decimal(10,2) not null,
     Id_Prod INT not null,
-    Id_Fac VARCHAR(11) not null,
+    Id_Fac INT not null,
     Id_Cli INT not null,
     Id_MP INT not null,
-
 	CONSTRAINT CK_Cantidad_Detalle CHECK (Cantidad >= 0),
 	CONSTRAINT CK_Precio CHECK (Precio > 0),
 	CONSTRAINT CK_Subtotal CHECK (Subtotal > 0),
     CONSTRAINT FK_Prod FOREIGN KEY (Id_Prod) REFERENCES Articulo.Producto(Id_Prod),
-    CONSTRAINT FK_Fac_DV FOREIGN KEY (Id_Fac) REFERENCES Venta.Factura(Id_Fac),
+    CONSTRAINT FK_Fac_DV FOREIGN KEY (Id_Fac) REFERENCES Venta.Factura(Id),
     CONSTRAINT FK_Cli_Venta FOREIGN KEY (Id_Cli) REFERENCES Persona.Cliente(Id_Cli),
     CONSTRAINT FK_MP_Venta FOREIGN KEY (Id_MP) REFERENCES Venta.Medio_Pago(Id_MP)
 );
@@ -152,8 +162,8 @@ CREATE TABLE Venta.Nota_De_Credito (
     Numero_Comprobante VARCHAR(20) PRIMARY KEY,
     Fecha DATE,
     Monto INT,
-    Id_Fac VARCHAR(11),
-    CONSTRAINT FK_Fac_Nota FOREIGN KEY (Id_Fac) REFERENCES Venta.Factura(Id_Fac)
+    Id_Fac INT,
+    CONSTRAINT FK_Fac_Nota FOREIGN KEY (Id_Fac) REFERENCES Venta.Factura(Id)
 );
 
 
@@ -196,6 +206,37 @@ IF exists (select 1 from Venta.Sucursal where Id_Suc=@Id_suc)
 	END
 END
 
+
+CREATE OR ALTER PROCEDURE Venta.Modificar_Sucursal
+@Legajo INT,
+@NuevaDireccion VARCHAR(50),
+@NuevoCargo VARCHAR(20),
+@NuevoEmail_Personal VARCHAR(100),
+@NuevoEmail_Empresa VARCHAR(100),
+@NuevoTurno CHAR(2),
+@NuevoId_Suc int
+AS
+BEGIN
+	IF EXISTS (SELECT 1 FROM Persona.Empleado WHERE Legajo = @Legajo)
+	BEGIN
+		UPDATE Persona.Empleado
+		SET Direccion = @NuevaDireccion,
+		Cargo = @NuevoCargo ,
+		Email_Personal = @NuevoEmail_Personal,
+		Email_Empresa = @NuevoEmail_Empresa ,
+		Turno = @NuevoTurno,
+		Id_Suc = @NuevoId_Suc
+		WHERE Legajo = @Legajo;
+
+		IF @@ROWCOUNT > 0
+		BEGIN
+			DECLARE @texto NVARCHAR(250);
+			SET @texto =CONCAT('Se han actualizado los datos del empleado con legajo: ', @Legajo);
+			--EXEC registros.insertarLog @modulo, @texto;
+		END
+	END
+END
+
 -- Para la tabla Cliente --
 create or alter procedure Persona.Insertar_Cliente --Insertar datos de clientes
 @Id_Cli int,
@@ -214,6 +255,7 @@ IF NOT EXISTS (Select 1 From Persona.Cliente Where Id_Cli = @Id_Cli)
 	RAISERROR('Esta Id %d ya pertenece a un cliente en el sistema',10,2,@Id_Cli)
     END
 END
+
 
 create or alter procedure Persona.Eliminar_Cliente --Dar de baja al cliente
 @Id_Cli int
@@ -268,33 +310,61 @@ END
 -- Para la tabla de Factura
 
 CREATE OR ALTER PROCEDURE Venta.Insertar_Factura
-@Id_Fac VARCHAR(12),
+@NumeroFactura CHAR(11),
 @Tipo CHAR (1),
 @Fecha Date,
 @Monto NUMERIC (7,2),
-@Estado CHAR (9)
 AS
 BEGIN
-IF NOT EXISTS (Select 1 From Venta.Factura Where Id_Fac = @Id_Fac )
+IF NOT EXISTS (Select 1 From Venta.Factura Where NumeroFactura = @NumeroFactura)
 	BEGIN
-	insert Venta.Factura (Id_Fac,Tipo,Fecha,Monto,Estado)
-	values (@Id_Fac,@Tipo, @Fecha, @Monto, @Estado);
+	insert Venta.Factura (NumeroFactura,Tipo,Fecha,Monto)
+	values (@NumeroFactura, @Tipo, @Fecha, @Monto);
 	END
 	ELSE
 		BEGIN
-		RAISERROR ('No se puede insertar datos con esa Id: %s',10,2,@Id_Fac);
+		RAISERROR ('No se puede insertar datos con ese numero %s',10,2,@NumeroFactura);
 		END
 END
 
-CREATE OR ALTER PROCEDURE Venta.Pagar_Factura
-@Id_Fac varchar(12)
+--Borado logico de factura
+
+CREATE or ALTER PROCEDURE Venta.Eliminar_Factura
+@NumeroFactura CHAR(11)
 AS
 BEGIN
-IF EXISTS (Select 1 From Venta.Factura Where Id_Fac = @Id_Fac)
+	IF EXISTS (SELECT 1 FROM Venta.Factura where Estado = 0 and NumeroFactura = @NumeroFactura)
+	BEGIN
+		RAISERROR('Factura ya eliminada',16,1);
+		RETURN;
+	END
+
+	DECLARE @modulo NVARCHAR(50) = 'Factura';
+	UPDATE Venta.Factura
+	SET Estado = 0
+	WHERE NumeroFactura = @NumeroFactura;
+
+	IF @@ROWCOUNT > 0
+	BEGIN
+		DECLARE @texto NVARCHAR(250);
+		SET @texto =CONCAT('Se ha borrado logicamente la factura con el ID : ', @NumeroFactura);
+		--EXEC registros.insertarLog @modulo, @texto;
+	END
+END
+GO
+
+
+----
+
+CREATE OR ALTER PROCEDURE Venta.Pagar_Factura
+@NumeroFactura CHAR(11)
+AS
+BEGIN
+IF EXISTS (Select 1 From Venta.Factura Where NumeroFactura = @NumeroFactura)
 	BEGIN
 	UPDATE Venta.Factura
-	SET Estado = 'Pagada'
-	Where Id_Fac = @Id_Fac and Estado ='No Pagada'
+	SET EstadoPago = 'Pagada'
+	Where NumeroFactura = @NumeroFactura and Estado ='Pendiente de pago'
 	END
 	ELSE
 		BEGIN
@@ -372,6 +442,41 @@ IF NOT EXISTS (Select 1 From Persona.Empleado Where Legajo = @Legajo)
 		END
 END
 
+
+--Modificacion de Empleado
+
+CREATE OR ALTER PROCEDURE Persona.Modificar_Empleado
+@Legajo INT,
+@NuevaDireccion VARCHAR(50),
+@NuevoCargo VARCHAR(20),
+@NuevoEmail_Personal VARCHAR(100),
+@NuevoEmail_Empresa VARCHAR(100),
+@NuevoTurno CHAR(2),
+@NuevoId_Suc int
+AS
+BEGIN
+	IF EXISTS (SELECT 1 FROM Persona.Empleado WHERE Legajo = @Legajo)
+	BEGIN
+		UPDATE Persona.Empleado
+		SET Direccion = @NuevaDireccion,
+		Cargo = @NuevoCargo ,
+		Email_Personal = @NuevoEmail_Personal,
+		Email_Empresa = @NuevoEmail_Empresa ,
+		Turno = @NuevoTurno,
+		Id_Suc = @NuevoId_Suc
+		WHERE Legajo = @Legajo;
+
+		IF @@ROWCOUNT > 0
+		BEGIN
+			DECLARE @texto NVARCHAR(250);
+			SET @texto =CONCAT('Se han actualizado los datos del empleado con legajo: ', @Legajo);
+			--EXEC registros.insertarLog @modulo, @texto;
+		END
+	END
+END
+
+	
+
 -- Para tabla Venta_Registrada
 
 CREATE OR ALTER PROCEDURE Venta.Insertar_VRegistrada
@@ -390,14 +495,44 @@ AS
 BEGIN
 IF NOT EXISTS (Select 1 From Venta.Venta_Registrada Where Id_Pago = @Id_Pago)
 	BEGIN
-	insert Venta.Venta_Registrada (Id_Pago,Tipo_Factura,Fecha,Hora,Tipo_Cliente,Ciudad,Cantidad,Producto,Precio_Unitario,Id_Emp,Id_MP)
-	values (@Id_Pago,@Tipo_Factura,@Fecha,@Hora,@Tipo_Cliente,@Ciudad,@Cantidad,@Producto,@Precio_Unitario,@Id_Emp,@Id_MP);
+		insert Venta.Venta_Registrada (Id_Pago,Tipo_Factura,Fecha,Hora,Tipo_Cliente,Ciudad,Cantidad,Producto,Precio_Unitario,Id_Emp,Id_MP)
+		values (@Id_Pago,@Tipo_Factura,@Fecha,@Hora,@Tipo_Cliente,@Ciudad,@Cantidad,@Producto,@Precio_Unitario,@Id_Emp,@Id_MP);
 	END
 	ELSE
 		BEGIN
-		RAISERROR('Ya se uso ese Id: %s',10,2,@Id_Pago);
+			RAISERROR('Ya se uso ese Id: %s',10,2,@Id_Pago);
 		END
 END
+
+-- Borrado logico de una venta registrada
+
+CREATE OR ALTER PROCEDURE Venta.Eliminar_VRegistrada
+@Id_Pago int
+AS
+BEGIN
+	IF EXISTS(Select 1 From Venta.Venta_Registrada where Id_Pago = @Id_Pago and Estado = 0)
+	BEGIN
+		RAISERROR('Venta ya eliminada',16,1);	
+		RETURN;
+	END
+
+	DECLARE @modulo NVARCHAR(50) = '';
+	UPDATE Venta.Venta_Registrada
+	SET Estado = 0
+	WHERE Id_Pago = @Id_Pago;
+
+	IF @@ROWCOUNT > 0
+	BEGIN
+		DECLARE @texto NVARCHAR(250);
+		SET @texto =CONCAT('Se ha borrado logicamente la venta con el ID : ', @Id_Pago);
+		--EXEC registros.insertarLog @modulo, @texto;
+	END
+END
+
+
+		
+		
+
 
 drop table venta.venta_registrada
 
@@ -409,7 +544,7 @@ CREATE OR ALTER PROCEDURE Venta.Insertar_Detalle_Venta
 @Precio Decimal (10,2),
 @Subtotal Decimal (10,2),
 @Id_Prod int,
-@Id_Fac varchar(11),
+@Id_Fac CHAR(11),
 @Id_Cli int,
 @Id_MP int
 AS
@@ -424,6 +559,9 @@ IF NOT EXISTS (Select 1 From Venta.Detalle_Venta Where Id_Ven = @Id_Ven )
 		RAISERROR('Id en uso: %s',10,2,@Id_Ven);
 		END
 END
+
+--Eliminar Venta
+
 
 
 
