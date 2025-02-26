@@ -2,8 +2,8 @@ USE Com1353G06
 
 /*
 CHECK_CONSTRAINTS,	   -- Verifica las restricciones de la tabla al insertar los datos
-FORMAT = 'CSV',		   -- Especifica que el archivo que se est· importando est· en formato CSV permitiendo que SQL Server maneje autom·ticamente la coma como delimitador y considere comillas dobles para los valores con caracteres especiales.
-CODEPAGE = '65001',	   -- indica que SQL Server debe utilizar UTF-8 como la p·gina de cÛdigos, al leer el archivo
+FORMAT = 'CSV',		   -- Especifica que el archivo que se est√° importando est√° en formato CSV permitiendo que SQL Server maneje autom√°ticamente la coma como delimitador y considere comillas dobles para los valores con caracteres especiales.
+CODEPAGE = '65001',	   -- indica que SQL Server debe utilizar UTF-8 como la p√°gina de c√≥digos, al leer el archivo
 FIRSTROW = 2,		   -- Omitir la primera fila si el archivo tiene encabezados
 FIELDTERMINATOR = ',', -- Define el delimitador de campos
 ROWTERMINATOR = '0x0A') -- Define el delimitador de filas
@@ -54,14 +54,14 @@ BEGIN
 							REPLACE(
 									REPLACE(
 										REPLACE(
-											REPLACE(LTRIM(RTRIM(horario)), '?', ' '),  -- Reemplazar el car·cter '?' por un espacio
-												 '-', 'ñ'  -- Reemplazar el guion corto con guion largo
+											REPLACE(LTRIM(RTRIM(horario)), '?', ' '),  -- Reemplazar el car√°cter '?' por un espacio
+												 '-', '‚Äì'  -- Reemplazar el guion corto con guion largo
 												),
 											 'a.m.', 'a.m.'  -- Asegurar que no haya espacios dentro de 'a.m.'
 											),
 									 'p.m.', 'p.m.'  -- Asegurar que no haya espacios dentro de 'p.m.'
 									 ),
-						'ñ', ' ñ '  -- Asegurar espacios antes y despuÈs del guion largo
+						'‚Äì', ' ‚Äì '  -- Asegurar espacios antes y despu√©s del guion largo
 						);
 
 	INSERT INTO  Venta.sucursal(Localidad_Ori,direccion,Localidad_Real,horario,telefono) --agregamos los estudios nuevos a la tabla de estudios.
@@ -159,3 +159,68 @@ EXEC Persona.EmpleadosImportar
 GO
 
 ROUND(((99 - 1) * RAND() + 1), 0) +  + ROUND(((9 - 1) * RAND() + 1), 0)
+
+
+
+
+
+CREATE OR ALTER PROCEDURE importar.CategoriaImportar
+	@data_file_path VARCHAR(MAX)
+AS
+BEGIN
+		BEGIN TRY
+
+			IF OBJECT_ID('tempdb..#tmpCategoria') IS NOT NULL
+				DROP TABLE #tmpCategoria;
+
+			CREATE TABLE #tmpCategoria (
+				Linea_De_Producto VARCHAR(100),
+				Producto VARCHAR(100),
+				);
+
+			SET NOCOUNT ON;
+
+			DECLARE @sql NVARCHAR(MAX);
+
+			SET @sql = '
+				INSERT INTO #tmpCategoria(Linea_De_Producto,Producto)
+				SELECT * 
+				FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'',
+				 ''Excel 12.0;Database='++ @data_file_path ++''',
+				 ''select * from [Clasificacion productos$]'');
+			';
+			EXEC sp_executesql @sql;
+
+			INSERT INTO Articulo.categoria(Linea_De_Producto,Descripcion)
+			(
+				SELECT tmp.Linea_De_Producto, tmp.Producto
+				FROM #tmpCategoria tmp
+				WHERE NOT EXISTS(
+					SELECT 1
+					FROM Articulo.categoria c
+					WHERE tmp.Producto = c.Descripcion COLLATE Modern_Spanish_CI_AS)
+			)
+		END TRY
+
+	BEGIN CATCH
+		PRINT 'Error al importar Excel Categoria' + ERROR_MESSAGE();
+	END CATCH
+		DROP TABLE IF EXISTS #tmpCategoria;
+END;
+GO
+
+ select *
+ from Articulo.categoria
+
+
+EXEC importar.CategoriaImportar
+	@data_file_path = 'C:\Temp\Informacion_complementaria.xlsx';
+GO
+
+
+
+
+
+
+
+
