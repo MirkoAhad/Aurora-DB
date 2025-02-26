@@ -219,6 +219,51 @@ GO
 
 
 
+CREATE OR ALTER PROCEDURE importar.ClienteImportar
+	@data_file_path VARCHAR(MAX)
+AS
+BEGIN
+		BEGIN TRY
+
+			IF OBJECT_ID('tempdb..#tmpCliente') IS NOT NULL
+				DROP TABLE #tmpCliente;
+
+			CREATE TABLE #tmpCliente (
+				Nombre VARCHAR(50),
+				Genero VARCHAR(6),
+				DNI int,
+				Tipo varchar(7)
+				);
+
+			SET NOCOUNT ON;
+
+			DECLARE @sql NVARCHAR(MAX);
+
+			SET @sql = '
+				INSERT INTO #tmpCliente(Nombre,Genero,DNI,TIpo)
+				SELECT * 
+				FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'',
+				 ''Excel 12.0;Database='++ @data_file_path ++''',
+				 ''select * from [Datos$]'');
+			';
+			EXEC sp_executesql @sql;
+
+		insert Persona.Cliente (Nombre,Genero,DNI,Tipo)
+		SELECT tmp.Nombre, tmp.Genero,tmp.DNI,tmp.Tipo
+				FROM #tmpCliente tmp
+
+	END TRY
+	BEGIN CATCH
+		PRINT 'Error al importar Excel Clientes' + ERROR_MESSAGE();
+	END CATCH
+		DROP TABLE IF EXISTS #tmpCliente;
+END;
+GO
+
+Exec importar.ClienteImportar 'C:\Temp\Clientes.xlsx';
+
+select *
+from Persona.Cliente
 
 
 
