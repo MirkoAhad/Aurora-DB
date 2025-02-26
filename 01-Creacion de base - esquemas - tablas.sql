@@ -20,7 +20,7 @@ CREATE TABLE Persona.Cliente (
     Nombre VARCHAR (30) not null,
     Genero CHAR (6) not null,
 	DNI int not null,
-    Tipo CHAR(11) not null,
+    Tipo CHAR(6) not null,
 	Baja Date default null,
 	CONSTRAINT CK_Genero CHECK (Genero IN ('Female','Male'))
 ); 
@@ -82,7 +82,7 @@ CREATE TABLE Persona.Empleado (
     Cargo VARCHAR(20),
     Email_Personal VARCHAR(100),
     Email_Empresa VARCHAR(100),
-    Cuil varchar(13) DEFAULT 0,
+    Cuil INT NOT NULL,
     Turno CHAR(2),
     Id_Suc INT NOT NULL,
 	Estado BIT NOT NULL DEFAULT 1,
