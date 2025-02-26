@@ -1,5 +1,4 @@
-USE Com1353G06
-
+--TODO IMPORTADO
 /*
 CHECK_CONSTRAINTS,	   -- Verifica las restricciones de la tabla al insertar los datos
 FORMAT = 'CSV',		   -- Especifica que el archivo que se está importando está en formato CSV permitiendo que SQL Server maneje automáticamente la coma como delimitador y considere comillas dobles para los valores con caracteres especiales.
@@ -21,7 +20,10 @@ EXEC master.dbo.sp_MSset_oledb_prop N'Microsoft.ACE.OLEDB.12.0', N'DynamicParame
 
 GO 
 
---Creamos SP para importar la sucursal
+USE Com1353G06
+GO
+
+--Importacion de sucursal
 
 CREATE OR ALTER PROCEDURE Venta.SucursalImportar
     @data_file_path VARCHAR(1000)
@@ -73,15 +75,15 @@ BEGIN
 END;
 GO
 
+EXEC Venta.SucursalImportar
+	@data_file_path = 'C:\Temp\Informacion_complementaria.xlsx';
+GO
 
 select *
 from Venta.sucursal
 
 
-EXEC Venta.SucursalImportar
-	@data_file_path = 'C:\Temp\Informacion_complementaria.xlsx';
-GO
-
+--Importacion de empleados
 
 CREATE OR ALTER PROCEDURE Persona.EmpleadosImportar
 	@data_file_path VARCHAR(MAX)
@@ -114,7 +116,7 @@ BEGIN
 			INSERT INTO #tmpEmpleado (Legajo,Nombre,Apellido,DNI,Direccion,emailpersonal,emailempresa,CUIL,Cargo,Ciudad_sucursal,Turno)
 			SELECT * 
 			FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'',
-			 ''Excel 12.0;Database='++ @data_file_path ++''',
+			 ''Excel 12.0;Database=' + @data_file_path + ''',
 			 ''select * from [Empleados$]'');
 		';
 		EXEC sp_executesql @sql;
@@ -149,22 +151,19 @@ BEGIN
 END;
 GO
 
+EXEC Persona.EmpleadosImportar
+	@data_file_path = 'C:\Temp\Informacion_complementaria.xlsx';
+GO
 
  select *
  from Persona.Empleado
 
 
-EXEC Persona.EmpleadosImportar
-	@data_file_path = 'C:\Temp\Informacion_complementaria.xlsx';
-GO
+ROUND(((99 - 1) * RAND() + 1), 0) +  + ROUND(((9 - 1) * RAND() + 1), 0) --Para que?
 
-ROUND(((99 - 1) * RAND() + 1), 0) +  + ROUND(((9 - 1) * RAND() + 1), 0)
+--Importamos las categorias
 
-
-
-
-
-CREATE OR ALTER PROCEDURE importar.CategoriaImportar
+CREATE OR ALTER PROCEDURE Articulo.CategoriaImportar
 	@data_file_path VARCHAR(MAX)
 AS
 BEGIN
@@ -209,17 +208,18 @@ BEGIN
 END;
 GO
 
+EXEC Articulo.CategoriaImportar
+	@data_file_path = 'C:\Temp\Informacion_complementaria.xlsx';
+GO
+
  select *
  from Articulo.categoria
 
 
-EXEC importar.CategoriaImportar
-	@data_file_path = 'C:\Temp\Informacion_complementaria.xlsx';
-GO
 
+ --Importamos clientes
 
-
-CREATE OR ALTER PROCEDURE importar.ClienteImportar
+CREATE OR ALTER PROCEDURE Persona.ClienteImportar
 	@data_file_path VARCHAR(MAX)
 AS
 BEGIN
@@ -260,12 +260,231 @@ BEGIN
 END;
 GO
 
-Exec importar.ClienteImportar 'C:\Temp\Clientes.xlsx';
-
+Exec Persona.ClienteImportar 'C:\Temp\Clientes.xlsx';
+go
+	
 select *
 from Persona.Cliente
 
 
+--IMPORTAR CATALOGO--
+
+CREATE OR ALTER PROCEDURE Articulo.CatalogoImportar
+	@data_file_path VARCHAR(MAX)
+AS
+BEGIN
+		BEGIN TRY
+
+			IF OBJECT_ID('tempdb..#tmpCatalogo') IS NOT NULL
+				DROP TABLE #tmpCatalogo;
+
+			CREATE TABLE #tmpCatalogo (
+				ID INT,
+				Category VARCHAR(50),
+				Nombre VARCHAR(100),
+				Price DECIMAL(20,2),
+				Reference_price DECIMAL(20,2),
+				Reference_unit VARCHAR(10),
+				Fecha DATETIME
+			);
+			
+	SET NOCOUNT ON; -- nos evitamos mensajes que generan trafico de red.
+    
+    DECLARE @sql NVARCHAR(MAX); -- creo de forma dinamica el ingreso, usando @sql
+
+	SET @sql = '
+		BULK INSERT #tmpCatalogo
+		FROM ''' + @data_file_path + '''
+		WITH(
+				CHECK_CONSTRAINTS,
+				FORMAT = ''CSV'',		   
+				CODEPAGE = ''65001'',
+				FIRSTROW = 2,		   
+				FIELDTERMINATOR = '','',
+				ROWTERMINATOR = ''0x0A''
+			);
+	';
+	EXEC sp_executesql @sql;
+
+	WITH cte_Dup
+	AS
+	(
+		SELECT tmp.ID, ROW_NUMBER() OVER (PARTITION BY tmp.Nombre, tmp.Reference_price, tmp.Reference_unit, tmp.Price ORDER BY tmp.Fecha) as Duplicados
+		FROM #tmpCatalogo tmp
+	)
+
+	/*SELECT *
+	FROM cte_Dup
+	WHERE Duplicados > 1
+	
+	DELETE FROM #tmpCatalogo
+	WHERE ID in (
+		SELECT ID FROM cte_dup WHERE DUPLICADOS > 1
+		)
+	
+	--UPDATE #tmpCatalogo*/ -- HAY QUE VER COMO ARREGLAR LOS DUPLICADOS 
+
+	INSERT INTO Articulo.producto(Nombre,Precio_Unitario,Precio_Referencia,Unidad_Referencia,Fecha_Hora,ID_Cat)
+	(
+		SELECT tmp.Nombre,tmp.Price,tmp.Reference_price,tmp.Reference_unit,tmp.Fecha,
+		(SELECT c.ID_Cat
+			FROM Articulo.categoria c
+			WHERE c.Descripcion = tmp.Category COLLATE Modern_Spanish_CI_AS)
+		FROM #tmpCatalogo tmp
+		WHERE NOT EXISTS(
+			SELECT 1
+				FROM Articulo.producto p
+				WHERE p.Nombre = tmp.Nombre COLLATE Modern_Spanish_CI_AS
+				AND p.Precio_Unitario = tmp.Price
+				AND p.Precio_Referencia = tmp.Reference_price
+				AND p.Unidad_Referencia = tmp.Reference_unit COLLATE Modern_Spanish_CI_AS)
+	)
+
+	END TRY
+	BEGIN CATCH
+		PRINT 'Error al importar Excel Catalogo' + ERROR_MESSAGE();
+	END CATCH
+		DROP TABLE IF EXISTS #tmpCatalogo;
+END;
+GO
+
+Exec Articulo.CatalogoImportar 'C:\Temp\catalogo.csv';
+go
+
+Select * from Articulo.Producto
+
+DELETE FROM Articulo.Producto
+
+--_____________________________PRODUCTOS IMPORTADOS__________________________
+
+	CREATE OR ALTER PROCEDURE Articulo.Productos_ImpImportar
+		@data_file_path VARCHAR(MAX)
+	AS
+	BEGIN
+			BEGIN TRY
+				IF OBJECT_ID('tempdb..#tmpProductos') IS NOT NULL
+					DROP TABLE #tmpProductos;
+
+				CREATE TABLE #tmpProductos (
+					IdProducto INT,
+					NombreProducto VARCHAR(100),
+					Proveedor VARCHAR(100),
+					Categoria VARCHAR(100),
+					CantidadPorUnidad VARCHAR(100),
+					PrecioUnidad DECIMAL(20,2)
+				);
+				SET NOCOUNT ON;
+
+				DECLARE @sql NVARCHAR(MAX);
+
+				SET @sql = '
+					INSERT INTO #tmpProductos(IdProducto,NombreProducto,Proveedor,Categoria,CantidadPorUnidad,PrecioUnidad)
+					SELECT * 
+					FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'',
+					 ''Excel 12.0;Database='++ @data_file_path ++''',
+					 ''select * from [Listado de Productos$]'');
+				';
+				EXEC sp_executesql @sql;
+
+				--UPDATE #tmpProductos
+				--SET Categoria = CONCAT('importado_',Categoria)
+
+				INSERT INTO Articulo.categoria(Descripcion,Linea_De_Producto)
+				(
+					SELECT DISTINCT tmp.Categoria,'Importado'
+						FROM #tmpProductos tmp
+						WHERE NOT EXISTS 
+						(
+							SELECT 1
+								FROM Articulo.categoria c
+								WHERE c.Descripcion = tmp.Categoria COLLATE Modern_Spanish_CI_AS
+						)
+				)
+
+				INSERT INTO Articulo.producto(Nombre,Precio_Unitario, ID_Cat)
+				SELECT tmp.NombreProducto,tmp.PrecioUnidad,
+					(SELECT c.ID_Cat
+					FROM Articulo.categoria c
+					WHERE c.Descripcion = tmp.Categoria COLLATE Modern_Spanish_CI_AS)
+				FROM #tmpProductos tmp
+				WHERE NOT EXISTS(
+					SELECT 1
+						FROM Articulo.producto p
+						WHERE p.Nombre = tmp.NombreProducto COLLATE Modern_Spanish_CI_AS
+						AND p.Precio_Unitario = tmp.PrecioUnidad
+				)
+			END TRY
+			BEGIN CATCH
+				PRINT 'Error al importar Excel Productos Importados' + ERROR_MESSAGE();
+			END CATCH
+				DROP TABLE IF EXISTS #tmpProductos;
+	END;
+	go
+
+Exec Articulo.Productos_ImpImportar 'C:\Temp\Productos_importados.xlsx';
+go
 
 
 
+select * FROM Articulo.Categoria
+select * from articulo.Producto
+
+
+
+--_____________________________PRODUCTOS Electronicos
+
+	CREATE OR ALTER PROCEDURE Articulo.ElectronicosImportar
+		@data_file_path VARCHAR(MAX)
+	AS
+	BEGIN
+			BEGIN TRY
+				IF OBJECT_ID('tempdb..#tmpElectronicos') IS NOT NULL
+					DROP TABLE #tmpElectronicos;
+
+				CREATE TABLE #tmpElectronicos (
+					NombreProducto VARCHAR(100),
+					PrecioUnidad DECIMAL(20,2)
+				);
+				SET NOCOUNT ON;
+
+				DECLARE @sql NVARCHAR(MAX);
+
+				SET @sql = '
+					INSERT INTO #tmpElectronicos(NombreProducto,PrecioUnidad)
+					SELECT * 
+					FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'',
+					 ''Excel 12.0;Database='++ @data_file_path ++''',
+					 ''select * from [Sheet1$]'');
+				';
+				EXEC sp_executesql @sql;
+
+				--UPDATE #tmpProductos
+				--SET Categoria = CONCAT('importado_',Categoria)
+				UPDATE #tmpElectronicos
+				SET PrecioUnidad = PrecioUnidad * 1220
+
+				INSERT INTO Articulo.categoria(Linea_De_Producto)
+					SELECT DISTINCT 'Electrodomesticos'
+
+				INSERT INTO Articulo.producto(Nombre,Precio_Unitario)
+				SELECT tmp.NombreProducto,tmp.PrecioUnidad
+				FROM #tmpElectronicos tmp
+				WHERE NOT EXISTS(
+					SELECT 1
+						FROM Articulo.producto p
+						WHERE p.Nombre = tmp.NombreProducto COLLATE Modern_Spanish_CI_AS
+						AND p.Precio_Unitario = tmp.PrecioUnidad
+				)
+			END TRY
+			BEGIN CATCH
+				PRINT 'Error al importar Excel Electronicos ' + ERROR_MESSAGE();
+			END CATCH
+				DROP TABLE IF EXISTS #tmpElectronicos;
+	END;
+	go
+
+Exec Articulo.ElectronicosImportar 'C:\Temp\Electronic accessories.xlsx';
+go
+
+select * FROM Articulo.Categoria
+select * from articulo.Producto

@@ -1,3 +1,10 @@
+--IMPORTANTE
+/*
+1) Decidi que linea de producto incluya a importado y a electrodomesticos
+2) importados tienen sus propias categorias. Electrodomesticos queda en NULL. 
+3) Vale la pena poner fecha hora, proveedor, precio referencia, y unidad referencia? por lo que veo no se usa para nada de nada
+
+*/
 
 use master
 drop database Com1353G06
@@ -58,22 +65,22 @@ CREATE TABLE  Venta.Sucursal (
 	Estado BIT NOT NULL DEFAULT 1,
     Horario VARCHAR(50)
 );
-
 CREATE TABLE Articulo.Categoria (
     ID_Cat INT IDENTITY (1,1) PRIMARY KEY,
-    Descripcion VARCHAR (30),
-    Linea_De_Producto VARCHAR(20),
+	Linea_De_Producto VARCHAR(20),
+    Descripcion VARCHAR (50), --ESTO SERIA LA CATEGORIA (cambiar nombre a categoria y actualizar el procedure de importacion)
 	Estado BIT NOT NULL DEFAULT 1
 );
 
+
 CREATE TABLE Articulo.Producto (
     Id_Prod INT IDENTITY (1,1) PRIMARY KEY,
-    Nombre VARCHAR (20),
+    Nombre VARCHAR (100),
     Fecha_hora DATETIME,
-    Precio DECIMAL(7,2),
+    Precio_Unitario DECIMAL(20,2),
     Proveedor VARCHAR (40),
-    Referencia_Unit Decimal (10,2),
-    Referencia CHAR(2),
+    Precio_Referencia decimal (20,2),
+    Unidad_Referencia VARCHAR(10),
 	Estado BIT NOT NULL DEFAULT 1, 
     ID_Cat INT,
     CONSTRAINT FK_Cat FOREIGN KEY (ID_Cat) REFERENCES Articulo.Categoria(ID_Cat)
@@ -83,7 +90,7 @@ CREATE TABLE Articulo.Producto (
  CREATE TABLE Persona.Empleado (
     Legajo int primary key,
     Nombre VARCHAR(30) NOT NULL,
-    Apellido VARCHAR(25) NOT NULL,
+    Apellido VARCHAR(30) NOT NULL,
     DNI INT NOT NULL,
     Direccion VARCHAR(100),
     Cargo VARCHAR(20),
@@ -98,12 +105,6 @@ CREATE TABLE Articulo.Producto (
     CONSTRAINT CK_Tur CHECK (Turno IN ('TM','TT','JC')), 
     CONSTRAINT CK_Cargo CHECK (Cargo IN ('Cajero','Supervisor','Gerente de sucursal'))
 );
-
-ALTER TABLE Persona.Empleado
-ADD CONSTRAINT CK_Tur CHECK (Turno IN ('TM','TT','JC'))
-
-DELETE FROM Persona.Empleado
-
 
 CREATE TABLE Venta.Venta_Registrada (
 	Id_Pago bigint primary key,
@@ -121,11 +122,7 @@ CREATE TABLE Venta.Venta_Registrada (
     CONSTRAINT FK_Cli FOREIGN KEY (Id_Cli) REFERENCES Persona.Cliente(Id_Cli),
     CONSTRAINT FK_MP FOREIGN KEY (Id_MP) REFERENCES Venta.Medio_Pago(Id_MP)
 	);
---    Tipo_Cliente VARCHAR(10) --> ya esta en cliente
---    Tipo_Factura CHAR(1) --> Ya esta en factura
---	  Agrego MontoTotal (se calcula con subtotales)
 
---cambios 
 CREATE TABLE Venta.Detalle_Venta (
     Cantidad INT not null,
     PrecioUnitario Decimal(10,2) not null,
