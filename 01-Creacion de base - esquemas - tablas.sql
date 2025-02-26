@@ -7,11 +7,17 @@ drop database Com1353G06
 create database Com1353G06
 
 Use Com1353G06
+go
 
 -- Creacion de schemas --
-create schema Persona;
-create schema Articulo;
+create schema Persona
+go
+
+create schema Articulo
+go
+
 create schema Venta
+go
 	
 -- Creacion de tablas --
 
@@ -45,11 +51,12 @@ CREATE TABLE Venta.Factura (
 
 CREATE TABLE  Venta.Sucursal (
     Id_Suc INT IDENTITY (1,1) PRIMARY KEY,
-    Localidad VARCHAR (20) not null,
-    Direccion VARCHAR(50) not null,
-    Telefono CHAR(10),
+    Localidad_Ori VARCHAR (40) not null,
+    Localidad_Real VARCHAR(40) not null,
+	Direccion VARCHAR(150),
+    Telefono CHAR(9),
 	Estado BIT NOT NULL DEFAULT 1,
-    Horario varchar(44)
+    Horario VARCHAR(50)
 );
 
 CREATE TABLE Articulo.Categoria (
@@ -73,12 +80,12 @@ CREATE TABLE Articulo.Producto (
 );
 
 
-CREATE TABLE Persona.Empleado (
+ CREATE TABLE Persona.Empleado (
     Legajo int primary key,
     Nombre VARCHAR(30) NOT NULL,
     Apellido VARCHAR(25) NOT NULL,
     DNI INT NOT NULL,
-    Direccion VARCHAR(50),
+    Direccion VARCHAR(100),
     Cargo VARCHAR(20),
     Email_Personal VARCHAR(100),
     Email_Empresa VARCHAR(100),
@@ -88,9 +95,14 @@ CREATE TABLE Persona.Empleado (
 	Estado BIT NOT NULL DEFAULT 1,
     CONSTRAINT Fk_Suc FOREIGN KEY (Id_Suc) REFERENCES Venta.Sucursal(Id_Suc),
     CONSTRAINT CK_Leg CHECK (Legajo BETWEEN 100000 AND 999999),
-    CONSTRAINT CK_Tur CHECK (Turno IN ('TM','TT','JC','TN')), 
+    CONSTRAINT CK_Tur CHECK (Turno IN ('TM','TT','JC')), 
     CONSTRAINT CK_Cargo CHECK (Cargo IN ('Cajero','Supervisor','Gerente de sucursal'))
 );
+
+ALTER TABLE Persona.Empleado
+ADD CONSTRAINT CK_Tur CHECK (Turno IN ('TM','TT','JC'))
+
+DELETE FROM Persona.Empleado
 
 
 CREATE TABLE Venta.Venta_Registrada (
