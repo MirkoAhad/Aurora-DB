@@ -549,19 +549,19 @@ BEGIN
 				DROP TABLE #tmpVentas;
 
 			CREATE TABLE #tmpVentas (
-				IDFactura CHAR(11) COLLATE Modern_Spanish_CI_AS,
+				IDFactura CHAR(11) COLLATE Latin1_General_CI_AI,
 				TipoFactura CHAR(1),
-				Ciudad VARCHAR(40) COLLATE Modern_Spanish_CI_AS,
-				TipoCliente VARCHAR(6) COLLATE Modern_Spanish_CI_AS,
-				Genero VARCHAR(6) COLLATE Modern_Spanish_CI_AS,
-				NombreProducto NVARCHAR(100) COLLATE Modern_Spanish_CI_AS,
+				Ciudad VARCHAR(40) COLLATE Latin1_General_CI_AI,
+				TipoCliente VARCHAR(6) COLLATE Latin1_General_CI_AI,
+				Genero VARCHAR(6) COLLATE Latin1_General_CI_AI,
+				NombreProducto NVARCHAR(100) COLLATE Latin1_General_CI_AI,
 				PrecioUnitario DECIMAL(20,2),
 				Cantidad INT,
 				Fecha VARCHAR(15),
 				Hora TIME,
-				MedioPago VARCHAR(30) COLLATE Modern_Spanish_CI_AS,
+				MedioPago VARCHAR(30) COLLATE Latin1_General_CI_AI,
 				LegajoEmpleado INT,
-				IDPago VARCHAR(30) COLLATE Modern_Spanish_CI_AS
+				IDPago VARCHAR(30) COLLATE Latin1_General_CI_AI
 			);
 			
 	SET NOCOUNT ON; -- nos evitamos mensajes que generan trafico de red.
@@ -582,6 +582,25 @@ BEGIN
 	';
 	EXEC sp_executesql @sql;
 
+	    -- Reemplazar caracteres en los nombres de productos
+	 UPDATE #tmpVentas
+    SET iDPago = REPLACE(LTRIM(RTRIM(iDPago)), '''', '');
+
+    UPDATE #tmpVentas
+    SET NombreProducto = REPLACE(NombreProducto, 'Ã³', 'ó');
+    
+    UPDATE #tmpVentas
+    SET NombreProducto = REPLACE(NombreProducto, N'単', 'ñ');
+
+    UPDATE #tmpVentas
+    SET NombreProducto = REPLACE(NombreProducto, N'Ãº', 'ú');
+
+    UPDATE #tmpVentas
+    SET NombreProducto = REPLACE(NombreProducto, N'Ã¡', 'á');
+
+    UPDATE #tmpVentas
+    SET NombreProducto = REPLACE(NombreProducto, N'Ã±', 'ñ');
+
 	INSERT INTO Venta.Factura(NumeroFactura,Tipo,Monto,EstadoPago)
 		SELECT  tmp.IDFactura, 
 				tmp.TipoFactura, 
@@ -590,7 +609,7 @@ BEGIN
 		FROM #tmpVentas tmp
 		WHERE NOT EXISTS (
 		 SELECT 1 FROM Venta.Factura f 
-		 WHERE f.NumeroFactura = tmp.IDFactura
+		 WHERE f.NumeroFactura = tmp.IDFactura collate Latin1_General_CI_AI
 			);
 
 		INSERT INTO Venta.Venta_Registrada(IDPago,Fecha,Hora,ID_Emp,Id_MP,ID_Fac)
@@ -600,22 +619,80 @@ BEGIN
 		tmp.LegajoEmpleado,
 			(SELECT m.Id_MP
 			FROM Venta.Medio_Pago m
-				WHERE m.Nombre = tmp.MedioPago),
+				WHERE m.Nombre = tmp.MedioPago collate Latin1_General_CI_AI),
 		(SELECT f.Id
 				FROM Venta.Factura f
-				WHERE f.NumeroFactura = tmp.IDFactura)
+				WHERE f.NumeroFactura = tmp.IDFactura collate Latin1_General_CI_AI)
 		FROM #tmpVentas tmp
 
-		INSERT INTO Venta.Detalle_Venta(Cantidad, PrecioUnitario,Subtotal, Id_Venta, Id_Prod)
-		SELECT tmp.Cantidad, tmp.PrecioUnitario, tmp.PrecioUnitario * tmp.Cantidad, 
+		SELECT IdPago, COUNT(*)
+		FROM Venta.Venta_Registrada
+		GROUP BY IdPago
+		HAVING COUNT(*) > 1; -- todos estos ID pago me tiran el valor 12
+
+		/*SELECT Id_Venta, Id_Prod, COUNT(*) as Repeticiones
+		FROM Venta.Detalle_Venta
+		GROUP BY Id_Venta, Id_Prod
+		HAVING COUNT(*) > 1;
+
+		SELECT v.Id, COUNT(DISTINCT v.IdPago) as DistintosPagos
+		FROM Venta.Venta_Registrada v
+		GROUP BY v.Id
+		HAVING COUNT(DISTINCT v.IdPago) > 1;*/
+
+	
+		--- INGRESO SI COINCIDE
+		INSERT INTO Venta.Detalle_Venta(Cantidad, PrecioUnitario, Subtotal, Id_Venta, Id_Prod)
+		SELECT  
+			tmp.Cantidad, 
+			tmp.PrecioUnitario, 
+			tmp.PrecioUnitario * tmp.Cantidad, 
+			(SELECT TOP 1 v.Id 
+			 FROM Venta.Venta_Registrada v
+			 WHERE v.IdPago = tmp.IDPago COLLATE Latin1_General_CI_AI),
+			(SELECT TOP 1 p.Id_Prod 
+			 FROM Articulo.Producto p
+			 WHERE p.Nombre COLLATE Latin1_General_CI_AI = tmp.NombreProducto)
+		FROM #tmpVentas tmp
+		WHERE (SELECT TOP 1 p.Id_Prod 
+				FROM Articulo.Producto p
+				WHERE p.Nombre COLLATE Latin1_General_CI_AI = tmp.NombreProducto) IS NOT NULL;
+
+
+		--SI NO COINCIDE; ENTONCES..
+			 -- Insertar en ventas.ventasProductosNoRegistrados los productos no encontrados en el catálogo
+		INSERT INTO venta.ventasProductosNoRegistrados
+		SELECT * 
+		FROM #tmpVentas v 
+		WHERE v.NombreProducto collate Latin1_General_CI_AI NOT IN (SELECT nombre FROM Articulo.Producto);
+
+
+		
+		/*INSERT INTO Venta.Detalle_Venta(Cantidad, PrecioUnitario,Subtotal, Id_Venta, Id_Prod)
+		SELECT top 50 tmp.Cantidad, tmp.PrecioUnitario, tmp.PrecioUnitario * tmp.Cantidad, 
 		(SELECT TOP 1 v.Id -- Me tira duplicados
 			FROM Venta.Venta_Registrada v
-			WHERE v.IdPago = tmp.IDPago),
+			WHERE v.IdPago = tmp.IDPago collate Latin1_General_CI_AI),
 		(SELECT TOP 1 p.Id_Prod -- me tira duplicados
+			FROM Articulo.Producto p
+			WHERE p.Nombre = tmp.NombreProducto collate Latin1_General_CI_AI)*/ --esto anda pero con top 5
+
+
+		-- Aseguramos que solo se insertan productos que existen
+		/*
+		INSERT INTO Venta.Detalle_Venta(Cantidad, PrecioUnitario,Subtotal, Id_Venta, Id_Prod)
+		SELECT top 5
+			tmp.Cantidad, 
+			tmp.PrecioUnitario, 
+			tmp.PrecioUnitario * tmp.Cantidad, 
+		(SELECT v.Id 
+			FROM Venta.Venta_Registrada v
+			WHERE v.IdPago = tmp.IDPago),
+		(SELECT p.Id_Prod 
 			FROM Articulo.Producto p
 			WHERE p.Nombre = tmp.NombreProducto)
 		FROM #tmpVentas tmp
-
+		*/
 	END TRY
 	BEGIN CATCH
 		PRINT 'Error al importar Excel Ventas Registradas' + ERROR_MESSAGE();
@@ -626,3 +703,27 @@ GO
 
 Exec Venta.VentasImportar 'C:\Temp\Ventas_registradas.csv';
 go
+
+select * from Venta.Detalle_Venta	
+
+select * from Venta.Venta_Registrada
+
+select * from Venta.Factura
+
+
+delete from Venta.Detalle_Venta
+go
+
+delete from Venta.Venta_Registrada
+go
+
+delete from Venta.Factura
+go
+
+SELECT v.Id 
+FROM Venta.Venta_Registrada v
+WHERE v.IdPago = '0000003100098336062436';  -- Sustituye con un ID de pago válido
+
+SELECT p.Id_Prod 
+FROM Articulo.Producto p
+WHERE p.Nombre = 'Crema facial reaffirmant Luxe caviar Deliplus';  -- Sustituye con un nombre de producto válido

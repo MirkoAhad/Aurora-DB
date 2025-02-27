@@ -77,7 +77,7 @@ CREATE TABLE Articulo.Categoria (
 
 CREATE TABLE Articulo.Producto (
     Id_Prod INT IDENTITY (1,1) PRIMARY KEY,
-    Nombre VARCHAR (100),
+    Nombre NVARCHAR (100),
     Fecha_hora DATETIME,
     Precio_Actual DECIMAL(20,2),
     Proveedor VARCHAR (40),
@@ -87,6 +87,27 @@ CREATE TABLE Articulo.Producto (
     ID_Cat INT,
     CONSTRAINT FK_Cat FOREIGN KEY (ID_Cat) REFERENCES Articulo.Categoria(ID_Cat)
 );
+
+
+ALTER TABLE Articulo.Producto
+ALTER COLUMN Nombre NVARCHAR(100);
+
+create table venta.ventasProductosNoRegistrados
+	(
+		NumeroFactura	CHAR(11),
+		Tipo	char(1),
+		ciudad			VARCHAR(40),
+		tipo_cliente	CHAR(6),
+		Genero			CHAR(6),
+		NombreProducto	nvarchar(200),
+		Precio_unitario	DECIMAL(20, 2),
+		Cantidad		int,
+		Fecha			varchar(15),
+		Hora			time,
+		Medio_de_pago	varchar(20),
+		idEmpleado		int,
+		idPago			varchar(30)
+    );
 
  CREATE TABLE Persona.Empleado (
     Legajo int primary key,
@@ -121,21 +142,19 @@ CREATE TABLE Venta.Venta_Registrada (
     CONSTRAINT FK_Fac_VR FOREIGN KEY (Id_Fac) REFERENCES Venta.Factura(Id),
     CONSTRAINT FK_Cli FOREIGN KEY (Id_Cli) REFERENCES Persona.Cliente(Id_Cli),
     CONSTRAINT FK_MP FOREIGN KEY (Id_MP) REFERENCES Venta.Medio_Pago(Id_MP)
-	);
-
-	alter 
-	
+	);	
 	-- elimino ciudad, queda redundante porque la obtenemos del empleado que realizo la venta y en la sucursal que trabajo
 	-- agrego IDPago como VARCHAR y un Id como PK
 	-- eliminamos monto
 
 CREATE TABLE Venta.Detalle_Venta (
+	Id_Det INT IDENTITY (1,1) primary key,
     Cantidad INT not null,
     PrecioUnitario DECIMAL(17,2) not null,
     Subtotal DECIMAL(17,2) not null,
     Id_Prod INT not null,
 	Id_Venta INT not null,
-	CONSTRAINT PK_Detalle_Venta PRIMARY KEY (Id_Prod, Id_Venta), -- saque ID_Det, me parecio que era mejor usar una PK compuesta
+	--CONSTRAINT PK_Detalle_Venta PRIMARY KEY (Id_Prod, Id_Venta), -- saque ID_Det, me parecio que era mejor usar una PK compuesta
 	CONSTRAINT CK_Cantidad_Detalle CHECK (Cantidad > 0),
 	CONSTRAINT CK_PrecioUnitario CHECK (PrecioUnitario > 0),
     CONSTRAINT FK_Prod FOREIGN KEY (Id_Prod) REFERENCES Articulo.Producto(Id_Prod),
@@ -156,4 +175,5 @@ CREATE TABLE Venta.Nota_De_Credito (
     CONSTRAINT FK_Fac_Nota FOREIGN KEY (Id_Fac) REFERENCES Venta.Factura(Id) ON DELETE CASCADE,
 	CONSTRAINT PK_IdNota PRIMARY KEY (Id, Id_Fac) -- Por ser debil deberia tener una Pk compuesta
 );
+
 
