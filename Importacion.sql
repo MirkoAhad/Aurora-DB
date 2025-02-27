@@ -324,7 +324,7 @@ BEGIN
 	
 	--UPDATE #tmpCatalogo*/ -- HAY QUE VER COMO ARREGLAR LOS DUPLICADOS 
 
-	INSERT INTO Articulo.producto(Nombre,Precio_Unitario,Precio_Referencia,Unidad_Referencia,Fecha_Hora,ID_Cat)
+	INSERT INTO Articulo.producto(Nombre,Precio_Actual,Precio_Referencia,Unidad_Referencia,Fecha_Hora,ID_Cat)
 	(
 		SELECT tmp.Nombre,tmp.Price,tmp.Reference_price,tmp.Reference_unit,tmp.Fecha,
 		(SELECT c.ID_Cat
@@ -335,7 +335,7 @@ BEGIN
 			SELECT 1
 				FROM Articulo.producto p
 				WHERE p.Nombre = tmp.Nombre COLLATE Modern_Spanish_CI_AS
-				AND p.Precio_Unitario = tmp.Price
+				AND p.Precio_Actual = tmp.Price
 				AND p.Precio_Referencia = tmp.Reference_price
 				AND p.Unidad_Referencia = tmp.Reference_unit COLLATE Modern_Spanish_CI_AS)
 	)
@@ -401,7 +401,7 @@ DELETE FROM Articulo.Producto
 						)
 				)
 
-				INSERT INTO Articulo.producto(Nombre,Precio_Unitario, ID_Cat)
+				INSERT INTO Articulo.producto(Nombre,Precio_Actual, ID_Cat)
 				SELECT tmp.NombreProducto,tmp.PrecioUnidad,
 					(SELECT c.ID_Cat
 					FROM Articulo.categoria c
@@ -411,7 +411,7 @@ DELETE FROM Articulo.Producto
 					SELECT 1
 						FROM Articulo.producto p
 						WHERE p.Nombre = tmp.NombreProducto COLLATE Modern_Spanish_CI_AS
-						AND p.Precio_Unitario = tmp.PrecioUnidad
+						AND p.Precio_Actual = tmp.PrecioUnidad
 				)
 			END TRY
 			BEGIN CATCH
@@ -431,7 +431,7 @@ select * from articulo.Producto
 
 
 
---_____________________________PRODUCTOS Electronicos
+------PRODUCTOS Electronicos-------
 
 	CREATE OR ALTER PROCEDURE Articulo.ElectronicosImportar
 		@data_file_path VARCHAR(MAX)
@@ -466,14 +466,14 @@ select * from articulo.Producto
 				INSERT INTO Articulo.categoria(Linea_De_Producto)
 					SELECT DISTINCT 'Electrodomesticos'
 
-				INSERT INTO Articulo.producto(Nombre,Precio_Unitario)
+				INSERT INTO Articulo.producto(Nombre,Precio_Actual)
 				SELECT tmp.NombreProducto,tmp.PrecioUnidad
 				FROM #tmpElectronicos tmp
 				WHERE NOT EXISTS(
 					SELECT 1
 						FROM Articulo.producto p
 						WHERE p.Nombre = tmp.NombreProducto COLLATE Modern_Spanish_CI_AS
-						AND p.Precio_Unitario = tmp.PrecioUnidad
+						AND p.Precio_Actual = tmp.PrecioUnidad
 				)
 			END TRY
 			BEGIN CATCH
@@ -488,3 +488,141 @@ go
 
 select * FROM Articulo.Categoria
 select * from articulo.Producto
+
+
+--IMPORTAR MEDIOS DE PAGO--
+
+CREATE OR ALTER PROCEDURE Venta.MediodePagoImportar
+	@data_file_path VARCHAR(MAX)
+AS
+BEGIN
+		BEGIN TRY
+
+			IF OBJECT_ID('tempdb..#tmpMedio') IS NOT NULL
+				DROP TABLE #tmpMedio;
+
+			CREATE TABLE #tmpMedio (
+				Vacio VARCHAR(30) NULL,
+				Ingles VARCHAR(30),
+				Español VARCHAR(30))
+
+			SET NOCOUNT ON;
+
+			DECLARE @sql NVARCHAR(MAX);
+
+			SET @sql = '
+				INSERT INTO #tmpMedio(Vacio,Ingles,Español)
+				SELECT * 
+				FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'',
+				 ''Excel 12.0;Database='++ @data_file_path ++''',
+				 ''select * from [medios de pago$]'');
+			';
+			EXEC sp_executesql @sql;
+
+			INSERT INTO Venta.Medio_Pago(nombre)
+				SELECT tmp.Ingles
+				FROM #tmpMedio tmp
+		END TRY
+
+	BEGIN CATCH
+		PRINT 'Error al importar Excel Medios de Pago' + ERROR_MESSAGE();
+	END CATCH
+		DROP TABLE IF EXISTS #tmpMedio;
+END;
+GO
+
+EXEC Venta.MediodePagoImportar
+	@data_file_path = 'C:\Temp\Informacion_complementaria.xlsx';
+GO
+
+select * from Venta.Medio_Pago
+
+
+
+--VENTAS REGISTRADAS--
+CREATE OR ALTER PROCEDURE Venta.VentasImportar
+	@data_file_path VARCHAR(MAX)
+AS
+BEGIN
+		BEGIN TRY
+			IF OBJECT_ID('tempdb..#tmpVentas') IS NOT NULL
+				DROP TABLE #tmpVentas;
+
+			CREATE TABLE #tmpVentas (
+				IDFactura CHAR(11) COLLATE Modern_Spanish_CI_AS,
+				TipoFactura CHAR(1),
+				Ciudad VARCHAR(40) COLLATE Modern_Spanish_CI_AS,
+				TipoCliente VARCHAR(6) COLLATE Modern_Spanish_CI_AS,
+				Genero VARCHAR(6) COLLATE Modern_Spanish_CI_AS,
+				NombreProducto NVARCHAR(100) COLLATE Modern_Spanish_CI_AS,
+				PrecioUnitario DECIMAL(20,2),
+				Cantidad INT,
+				Fecha VARCHAR(15),
+				Hora TIME,
+				MedioPago VARCHAR(30) COLLATE Modern_Spanish_CI_AS,
+				LegajoEmpleado INT,
+				IDPago VARCHAR(30) COLLATE Modern_Spanish_CI_AS
+			);
+			
+	SET NOCOUNT ON; -- nos evitamos mensajes que generan trafico de red.
+    
+    DECLARE @sql NVARCHAR(MAX); -- creo de forma dinamica el ingreso, usando @sql
+
+	SET @sql = '
+		BULK INSERT #tmpVentas
+		FROM ''' + @data_file_path + '''
+		WITH(
+				CHECK_CONSTRAINTS,
+				FORMAT = ''CSV'',		   
+				CODEPAGE = ''65001'',
+				FIRSTROW = 2,		   
+				FIELDTERMINATOR = '';'',
+				ROWTERMINATOR = ''0x0A''
+			);
+	';
+	EXEC sp_executesql @sql;
+
+	INSERT INTO Venta.Factura(NumeroFactura,Tipo,Monto,EstadoPago)
+		SELECT  tmp.IDFactura, 
+				tmp.TipoFactura, 
+				tmp.Cantidad * PrecioUnitario, 
+				'Pagado'
+		FROM #tmpVentas tmp
+		WHERE NOT EXISTS (
+		 SELECT 1 FROM Venta.Factura f 
+		 WHERE f.NumeroFactura = tmp.IDFactura
+			);
+
+		INSERT INTO Venta.Venta_Registrada(IDPago,Fecha,Hora,ID_Emp,Id_MP,ID_Fac)
+		SELECT tmp.IDPago,
+		CONVERT(DATE, tmp.Fecha, 101),
+		tmp.Hora,
+		tmp.LegajoEmpleado,
+			(SELECT m.Id_MP
+			FROM Venta.Medio_Pago m
+				WHERE m.Nombre = tmp.MedioPago),
+		(SELECT f.Id
+				FROM Venta.Factura f
+				WHERE f.NumeroFactura = tmp.IDFactura)
+		FROM #tmpVentas tmp
+
+		INSERT INTO Venta.Detalle_Venta(Cantidad, PrecioUnitario,Subtotal, Id_Venta, Id_Prod)
+		SELECT tmp.Cantidad, tmp.PrecioUnitario, tmp.PrecioUnitario * tmp.Cantidad, 
+		(SELECT TOP 1 v.Id -- Me tira duplicados
+			FROM Venta.Venta_Registrada v
+			WHERE v.IdPago = tmp.IDPago),
+		(SELECT TOP 1 p.Id_Prod -- me tira duplicados
+			FROM Articulo.Producto p
+			WHERE p.Nombre = tmp.NombreProducto)
+		FROM #tmpVentas tmp
+
+	END TRY
+	BEGIN CATCH
+		PRINT 'Error al importar Excel Ventas Registradas' + ERROR_MESSAGE();
+	END CATCH
+		DROP TABLE IF EXISTS #tmpVentas;
+END;
+GO
+
+Exec Venta.VentasImportar 'C:\Temp\Ventas_registradas.csv';
+go

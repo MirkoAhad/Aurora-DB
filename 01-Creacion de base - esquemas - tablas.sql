@@ -12,6 +12,7 @@ drop database Com1353G06
 -- Creacion de la BDD --
 
 create database Com1353G06
+go
 
 Use Com1353G06
 go
@@ -40,7 +41,7 @@ CREATE TABLE Persona.Cliente (
 
 CREATE TABLE Venta.Medio_Pago (
     Id_MP INT IDENTITY (1,1) PRIMARY KEY,
-    Descripcion CHAR (21),
+    Nombre VARCHAR(30),
 	Baja Date default null
 );
 
@@ -48,7 +49,7 @@ CREATE TABLE Venta.Factura (
     Id INT IDENTITY (1,1) PRIMARY KEY,
 	NumeroFactura CHAR(11) UNIQUE,
     Tipo CHAR(1),
-    MontoFactura DECIMAL(10,2), 
+    Monto DECIMAL(17,2), 
 	EstadoPago VARCHAR(17) DEFAULT 'Pendiente de pago',
 	Estado BIT DEFAULT 1, 
     CONSTRAINT CK_Tipo CHECK( Tipo IN ('A','B','C')),
@@ -65,6 +66,7 @@ CREATE TABLE  Venta.Sucursal (
 	Estado BIT NOT NULL DEFAULT 1,
     Horario VARCHAR(50)
 );
+
 CREATE TABLE Articulo.Categoria (
     ID_Cat INT IDENTITY (1,1) PRIMARY KEY,
 	Linea_De_Producto VARCHAR(20),
@@ -77,7 +79,7 @@ CREATE TABLE Articulo.Producto (
     Id_Prod INT IDENTITY (1,1) PRIMARY KEY,
     Nombre VARCHAR (100),
     Fecha_hora DATETIME,
-    Precio_Unitario DECIMAL(20,2),
+    Precio_Actual DECIMAL(20,2),
     Proveedor VARCHAR (40),
     Precio_Referencia decimal (20,2),
     Unidad_Referencia VARCHAR(10),
@@ -85,7 +87,6 @@ CREATE TABLE Articulo.Producto (
     ID_Cat INT,
     CONSTRAINT FK_Cat FOREIGN KEY (ID_Cat) REFERENCES Articulo.Categoria(ID_Cat)
 );
-
 
  CREATE TABLE Persona.Empleado (
     Legajo int primary key,
@@ -107,11 +108,10 @@ CREATE TABLE Articulo.Producto (
 );
 
 CREATE TABLE Venta.Venta_Registrada (
-	Id_Pago bigint primary key,
+	Id INT IDENTITY(1,1) primary key,
+	IdPago VARCHAR(30),
     Fecha DATE,
     Hora TIME,
-    Ciudad VARCHAR(20),
-	MontoTotal DECIMAL(10,2),
 	Estado BIT NOT NULL DEFAULT 1,
     Id_Emp INT,
     Id_Fac INT,
@@ -123,17 +123,23 @@ CREATE TABLE Venta.Venta_Registrada (
     CONSTRAINT FK_MP FOREIGN KEY (Id_MP) REFERENCES Venta.Medio_Pago(Id_MP)
 	);
 
+	alter 
+	
+	-- elimino ciudad, queda redundante porque la obtenemos del empleado que realizo la venta y en la sucursal que trabajo
+	-- agrego IDPago como VARCHAR y un Id como PK
+	-- eliminamos monto
+
 CREATE TABLE Venta.Detalle_Venta (
     Cantidad INT not null,
-    PrecioUnitario Decimal(10,2) not null,
-    Subtotal Decimal(10,2) not null,
+    PrecioUnitario DECIMAL(17,2) not null,
+    Subtotal DECIMAL(17,2) not null,
     Id_Prod INT not null,
-	Id_Pago BigInt not null,
-	CONSTRAINT PK_Detalle_Venta PRIMARY KEY (Id_Prod, Id_Pago), -- saque ID_Det, me parecio que era mejor usar una PK compuesta
+	Id_Venta INT not null,
+	CONSTRAINT PK_Detalle_Venta PRIMARY KEY (Id_Prod, Id_Venta), -- saque ID_Det, me parecio que era mejor usar una PK compuesta
 	CONSTRAINT CK_Cantidad_Detalle CHECK (Cantidad > 0),
 	CONSTRAINT CK_PrecioUnitario CHECK (PrecioUnitario > 0),
     CONSTRAINT FK_Prod FOREIGN KEY (Id_Prod) REFERENCES Articulo.Producto(Id_Prod),
-	CONSTRAINT FK_Id_Pago FOREIGN KEY (Id_Pago) REFERENCES Venta.Venta_Registrada(Id_Pago)
+	CONSTRAINT FK_Id_Venta FOREIGN KEY (Id_Venta) REFERENCES Venta.Venta_Registrada(Id)
 );
 
     --Id_Fac INT not null, --> no me hacen falta, esa info ya la tengo en venta_Registrada
