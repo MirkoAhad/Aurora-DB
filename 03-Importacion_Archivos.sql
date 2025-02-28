@@ -1,4 +1,12 @@
---TODO IMPORTADO
+-- Grupo:06
+-- Chacón Mirko Facundo - 43444942
+-- Giannni Pérez, Gabriel Idelmar- 45614379
+-- Nielsen, Tomas Agustín - 41326589
+-- Silva , Pablo Ismael - 31641736
+-------------------------------
+-- Fecha de Entrega: 28/02/2025
+-- Bases de Datos Aplicadas
+
 /*
 CHECK_CONSTRAINTS,	   -- Verifica las restricciones de la tabla al insertar los datos
 FORMAT = 'CSV',		   -- Especifica que el archivo que se está importando está en formato CSV permitiendo que SQL Server maneje automáticamente la coma como delimitador y considere comillas dobles para los valores con caracteres especiales.
@@ -76,10 +84,10 @@ BEGIN
 END;
 GO
 
---Importacion de empleados
+--IMPORTACION EMPLEADOS (encriptado)
 
 CREATE OR ALTER PROCEDURE Persona.EmpleadosImportar
-	@data_file_path VARCHAR(MAX)
+	@data_file_path VARCHAR(MAX), @FraseClave NVARCHAR(256)
 AS
 BEGIN
 	BEGIN TRY
@@ -120,20 +128,21 @@ BEGIN
 			ELSE Turno
 			END;
 		
-		INSERT INTO Persona.empleado(Legajo,Nombre,Apellido,DNI,Direccion,Email_Personal,Email_Empresa,CUIL,Cargo,Turno,Id_Suc)
+		INSERT INTO Persona.empleado(Legajo,Nombre,Apellido,DNI,Direccion,Email_Personal,Email_Empresa,Cuil,Cargo,Turno,Id_Suc)
 			(SELECT tmp.Legajo,
-					REPLACE(tmp.Nombre, CHAR(9), ' '),
-					REPLACE(tmp.Apellido, CHAR(9), ' '),
-					tmp.DNI,
-					tmp.Direccion,
-					REPLACE(REPLACE(tmp.emailpersonal, ' ', ''), CHAR(9), ''),
-					REPLACE(REPLACE(tmp.emailempresa, ' ', ''), CHAR(9), ''),
-					tmp.DNI,
+					EncryptByPassPhrase (@FraseClave, REPLACE(tmp.Nombre, CHAR(9), ' ')) as Nombre,
+					EncryptByPassPhrase (@FraseClave , REPLACE(tmp.Apellido, CHAR(9), ' ')) as Apellido,
+					EncryptByPassPhrase(@FraseClave, CAST(tmp.DNI AS VARCHAR(10))) AS Dni,
+					EncryptByPassPhrase(@FraseClave, tmp.Direccion) AS Direccion,
+					EncryptByPassPhrase(@FraseClave, REPLACE(REPLACE(tmp.emailpersonal, ' ', ''), CHAR(9), '')) AS Email_personal,
+					EncryptByPassPhrase(@FraseClave, REPLACE(REPLACE(tmp.emailempresa, ' ', ''), CHAR(9), '')) AS Email_empresa,
+					EncryptByPassPhrase(@FraseClave, CAST(tmp.DNI AS VARCHAR(10))) AS CUIL,
 					tmp.Cargo,
 					tmp.Turno,
 					(SELECT Id_Suc FROM Venta.sucursal WHERE Localidad_Real = tmp.Ciudad_sucursal COLLATE Modern_Spanish_CS_AS)
 		FROM #tmpEmpleado tmp 
 		WHERE tmp.Legajo IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Persona.empleado e WHERE tmp.Legajo = e.Legajo))
+
 
 	END TRY
 	BEGIN CATCH
@@ -143,6 +152,7 @@ BEGIN
 		DROP TABLE IF EXISTS #tmpEmpleado;
 END;
 GO
+
 
 --Importamos las categorias
 

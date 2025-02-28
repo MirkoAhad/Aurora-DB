@@ -1,14 +1,38 @@
---IMPORTANTE
-/*
-1) Decidi que linea de producto incluya a importado y a electrodomesticos
-2) importados tienen sus propias categorias. Electrodomesticos queda en NULL. 
-3) Vale la pena poner fecha hora, proveedor, precio referencia, y unidad referencia? por lo que veo no se usa para nada de nada
+-- Grupo:06
+-- Chacón Mirko Facundo - 43444942
+-- Giannni Pérez, Gabriel Idelmar- 45614379
+-- Nielsen, Tomas Agustín - 41326589
+-- Silva , Pablo Ismael - 31641736
+-------------------------------
+-- Fecha de Entrega: 28/02/2025
+-- Bases de Datos Aplicadas
 
-*/
-
+/*Entrega 3
+Luego de decidirse por un motor de base de datos relacional, llegó el momento de generar la
+base de datos. En esta oportunidad utilizarán SQL Server.
+Deberá instalar el DMBS y documentar el proceso. No incluya capturas de pantalla. Detalle
+las configuraciones aplicadas (ubicación de archivos, memoria asignada, seguridad, puertos,
+etc.) en un documento como el que le entregaría al DBA.
+Incluya también un DER con el diseño de la base de datos. Deben aparecer correctamente
+las relaciones y las claves, pero el formato queda a su criterio.
+Cree la base de datos, entidades y relaciones. Incluya restricciones y claves. Deberá entregar
+un archivo .sql con el script completo de creación (debe funcionar si se lo ejecuta “tal cual” es
+entregado en una sola ejecución). Incluya comentarios para indicar qué hace cada módulo
+de código.
+Genere store procedures para manejar la inserción, modificado, borrado (si corresponde,
+también debe decidir si determinadas entidades solo admitirán borrado lógico) de cada tabla.
+Los nombres de los store procedures NO deben comenzar con “SP”.
+Algunas operaciones implicarán store procedures que involucran varias tablas, uso de
+transacciones, etc. Puede que incluso realicen ciertas operaciones mediante varios SPs.
+Asegúrense de que los comentarios que acompañen al código lo expliquen.
+Genere esquemas para organizar de forma lógica los componentes del sistema y aplique esto
+en la creación de objetos. NO use el esquema “dbo”.
+Todos los SP creados deben estar acompañados de juegos de prueba. Se espera que
+realicen validaciones básicas en los SP (p/e cantidad mayor a cero, CUIT válido, etc.) y que
+en los juegos de prueba demuestren la correcta aplicación de las validaciones.
+Las pruebas deben realizarse en un script separado, donde con comentarios se indique en
+cada caso el resultado esperado */
 -- Creacion de la BDD --
-use master
-go
 
 create database Com1353G06
 go
@@ -87,9 +111,6 @@ CREATE TABLE Articulo.Producto (
     CONSTRAINT FK_Cat FOREIGN KEY (ID_Cat) REFERENCES Articulo.Categoria(ID_Cat)
 );
 
-
-
-
 create table venta.ventasProductosNoRegistrados -- Posibles datos de excel de ventas que no podemos hacer coincidir con los productos del catalogo.
 	(
 		NumeroFactura	CHAR(11),
@@ -109,15 +130,15 @@ create table venta.ventasProductosNoRegistrados -- Posibles datos de excel de ve
 
  CREATE TABLE Persona.Empleado (
     Legajo int primary key,
-    Nombre VARCHAR(30) NOT NULL,
-    Apellido VARCHAR(30) NOT NULL,
-    DNI INT NOT NULL,
-    Direccion VARCHAR(100),
-    Cargo VARCHAR(20),
-    Email_Personal VARCHAR(100),
-    Email_Empresa VARCHAR(100),
-    Cuil INT NOT NULL,
+    Nombre  VARBINARY(256) NOT NULL,
+    Apellido  VARBINARY(256) NOT NULL,
+    DNI  VARBINARY(256) NOT NULL,
+    Direccion  VARBINARY(256),
+    Email_Personal VARBINARY(256),
+    Email_Empresa VARBINARY(256),
+	Cargo VARCHAR(20),
     Turno CHAR(2),
+	CUIL VARBINARY(256),
     Id_Suc INT NOT NULL,
 	Estado BIT NOT NULL DEFAULT 1,
     CONSTRAINT Fk_Suc FOREIGN KEY (Id_Suc) REFERENCES Venta.Sucursal(Id_Suc),
@@ -158,12 +179,11 @@ CREATE TABLE Venta.Detalle_Venta (
 );
 
 CREATE TABLE Venta.Nota_De_Credito (
-    Id INT IDENTITY(1,1), 
+    Id INT IDENTITY(1,1) primary key, 
     Fecha DATE NOT NULL,
     Monto Decimal(17,2) NOT NULL,
     Id_Fac INT NOT NULL unique,
     CONSTRAINT FK_Fac_Nota FOREIGN KEY (Id_Fac) REFERENCES Venta.Factura(Id) ON DELETE CASCADE,
-	CONSTRAINT PK_IdNota PRIMARY KEY (Id, Id_Fac) -- Por ser debil deberia tener una Pk compuesta
 );
 
 

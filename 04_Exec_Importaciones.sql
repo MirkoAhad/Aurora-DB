@@ -1,3 +1,13 @@
+
+-- Grupo:06
+-- Chacón Mirko Facundo - 43444942
+-- Giannni Pérez, Gabriel Idelmar- 45614379
+-- Nielsen, Tomas Agustín - 41326589
+-- Silva , Pablo Ismael - 31641736
+-------------------------------
+-- Fecha de Entrega: 28/02/2025
+-- Bases de Datos Aplicadas
+
 USE Com1353G06
 GO
 
@@ -12,7 +22,7 @@ GO
 
 
 EXEC Persona.EmpleadosImportar
-	@data_file_path = 'C:\Temp\Informacion_complementaria.xlsx';
+	@data_file_path = 'C:\Temp\Informacion_complementaria.xlsx', @FraseClave ='clave';
 GO
 
 --------------------------------------------------------Categoria-----------------------------------------------
