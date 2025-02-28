@@ -6,9 +6,6 @@
 
 */
 
-use master
-drop database Com1353G06
-
 -- Creacion de la BDD --
 
 create database Com1353G06
@@ -77,7 +74,7 @@ CREATE TABLE Articulo.Categoria (
 
 CREATE TABLE Articulo.Producto (
     Id_Prod INT IDENTITY (1,1) PRIMARY KEY,
-    Nombre NVARCHAR (100),
+    Nombre NVARCHAR (100), -- Articulos no registrados tienen simbolos raros y el varchar no lo detecta.
     Fecha_hora DATETIME,
     Precio_Actual DECIMAL(20,2),
     Proveedor VARCHAR (40),
@@ -89,10 +86,9 @@ CREATE TABLE Articulo.Producto (
 );
 
 
-ALTER TABLE Articulo.Producto
-ALTER COLUMN Nombre NVARCHAR(100);
 
-create table venta.ventasProductosNoRegistrados
+
+create table venta.ventasProductosNoRegistrados -- Posibles datos de excel de ventas que no podemos hacer coincidir con los productos del catalogo.
 	(
 		NumeroFactura	CHAR(11),
 		Tipo	char(1),
@@ -143,9 +139,7 @@ CREATE TABLE Venta.Venta_Registrada (
     CONSTRAINT FK_Cli FOREIGN KEY (Id_Cli) REFERENCES Persona.Cliente(Id_Cli),
     CONSTRAINT FK_MP FOREIGN KEY (Id_MP) REFERENCES Venta.Medio_Pago(Id_MP)
 	);	
-	-- elimino ciudad, queda redundante porque la obtenemos del empleado que realizo la venta y en la sucursal que trabajo
-	-- agrego IDPago como VARCHAR y un Id como PK
-	-- eliminamos monto
+
 
 CREATE TABLE Venta.Detalle_Venta (
 	Id_Det INT IDENTITY (1,1) primary key,
@@ -154,26 +148,21 @@ CREATE TABLE Venta.Detalle_Venta (
     Subtotal DECIMAL(17,2) not null,
     Id_Prod INT not null,
 	Id_Venta INT not null,
-	--CONSTRAINT PK_Detalle_Venta PRIMARY KEY (Id_Prod, Id_Venta), -- saque ID_Det, me parecio que era mejor usar una PK compuesta
+	
 	CONSTRAINT CK_Cantidad_Detalle CHECK (Cantidad > 0),
 	CONSTRAINT CK_PrecioUnitario CHECK (PrecioUnitario > 0),
     CONSTRAINT FK_Prod FOREIGN KEY (Id_Prod) REFERENCES Articulo.Producto(Id_Prod),
 	CONSTRAINT FK_Id_Venta FOREIGN KEY (Id_Venta) REFERENCES Venta.Venta_Registrada(Id)
 );
 
-    --Id_Fac INT not null, --> no me hacen falta, esa info ya la tengo en venta_Registrada
-    --Id_Cli INT not null,
-	--Id_MP INT not null,
-	--	CONSTRAINT CK_Subtotal CHECK (Subtotal > 0), creo que no vale la pena, ya se calucla multiplicando valores mayores a 0
-
-
 CREATE TABLE Venta.Nota_De_Credito (
-    Id INT IDENTITY(1,1), -- lo hice INT porque no es el mismo ID que factura
+    Id INT IDENTITY(1,1), 
     Fecha DATE NOT NULL,
-    Monto INT NOT NULL,
-    Id_Fac INT NOT NULL,
+    Monto Decimal(17,2) NOT NULL,
+    Id_Fac INT NOT NULL unique,
     CONSTRAINT FK_Fac_Nota FOREIGN KEY (Id_Fac) REFERENCES Venta.Factura(Id) ON DELETE CASCADE,
 	CONSTRAINT PK_IdNota PRIMARY KEY (Id, Id_Fac) -- Por ser debil deberia tener una Pk compuesta
 );
+
 
 
