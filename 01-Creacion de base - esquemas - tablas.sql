@@ -7,6 +7,8 @@
 */
 
 -- Creacion de la BDD --
+use master
+go
 
 create database Com1353G06
 go

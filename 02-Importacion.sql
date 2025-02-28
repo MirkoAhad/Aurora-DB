@@ -7,7 +7,8 @@ FIRSTROW = 2,		   -- Omitir la primera fila si el archivo tiene encabezados
 FIELDTERMINATOR = ',', -- Define el delimitador de campos
 ROWTERMINATOR = '0x0A') -- Define el delimitador de filas
 */
-
+/*
+--CONFIGURACION
 USE [master] 
 GO
 
@@ -18,7 +19,7 @@ GO
 
 EXEC master.dbo.sp_MSset_oledb_prop N'Microsoft.ACE.OLEDB.12.0', N'DynamicParameters', 1 
 
-GO 
+GO */
 
 USE Com1353G06
 GO
@@ -74,14 +75,6 @@ BEGIN
 
 END;
 GO
-
-EXEC Venta.SucursalImportar
-	@data_file_path = 'C:\Temp\Informacion_complementaria.xlsx';
-GO
-
-select *
-from Venta.sucursal
-
 
 --Importacion de empleados
 
@@ -151,15 +144,6 @@ BEGIN
 END;
 GO
 
-EXEC Persona.EmpleadosImportar
-	@data_file_path = 'C:\Temp\Informacion_complementaria.xlsx';
-GO
-
- select *
- from Persona.Empleado
-
-
-
 --Importamos las categorias
 
 CREATE OR ALTER PROCEDURE Articulo.CategoriaImportar
@@ -207,15 +191,6 @@ BEGIN
 END;
 GO
 
-EXEC Articulo.CategoriaImportar
-	@data_file_path = 'C:\Temp\Informacion_complementaria.xlsx';
-GO
-
- select *
- from Articulo.categoria
-
-
-
  --Importamos clientes
 
 CREATE OR ALTER PROCEDURE Persona.ClienteImportar
@@ -259,13 +234,6 @@ BEGIN
 END;
 GO
 
-Exec Persona.ClienteImportar 'C:\Temp\Clientes.xlsx';
-go
-	
-select *
-from Persona.Cliente
-
-
 --IMPORTAR CATALOGO--
 
 CREATE OR ALTER PROCEDURE Articulo.CatalogoImportar
@@ -305,23 +273,20 @@ BEGIN
 	';
 	EXEC sp_executesql @sql;
 
-	WITH cte_Dup
-	AS
-	(
-		SELECT tmp.ID, ROW_NUMBER() OVER (PARTITION BY tmp.Nombre, tmp.Reference_price, tmp.Reference_unit, tmp.Price ORDER BY tmp.Fecha) as Duplicados
-		FROM #tmpCatalogo tmp
+	WITH cte_Dup AS (
+    SELECT 
+        tmp.ID, 
+        ROW_NUMBER() OVER (
+            PARTITION BY tmp.Nombre, tmp.Reference_price, tmp.Reference_unit, tmp.Price 
+            ORDER BY tmp.Fecha DESC 
+        ) AS Duplicados
+    FROM #tmpCatalogo tmp
 	)
-
-	/*SELECT *
-	FROM cte_Dup
-	WHERE Duplicados > 1
-	
 	DELETE FROM #tmpCatalogo
-	WHERE ID in (
-		SELECT ID FROM cte_dup WHERE DUPLICADOS > 1
-		)
-	
-	--UPDATE #tmpCatalogo*/ -- HAY QUE VER COMO ARREGLAR LOS DUPLICADOS 
+	WHERE ID IN (
+    SELECT ID FROM cte_Dup WHERE Duplicados > 1
+	)
+	;
 
 	INSERT INTO Articulo.producto(Nombre,Precio_Actual,Precio_Referencia,Unidad_Referencia,Fecha_Hora,ID_Cat)
 	(
@@ -346,13 +311,6 @@ BEGIN
 		DROP TABLE IF EXISTS #tmpCatalogo;
 END;
 GO
--- Verificar duplicados
-Exec Articulo.CatalogoImportar 'C:\Temp\catalogo.csv';
-go
-
-Select * from Articulo.Producto
-
-DELETE FROM Articulo.Producto
 
 --_____________________________PRODUCTOS IMPORTADOS__________________________
 
@@ -385,8 +343,6 @@ DELETE FROM Articulo.Producto
 				';
 				EXEC sp_executesql @sql;
 
-				--UPDATE #tmpProductos
-				--SET Categoria = CONCAT('importado_',Categoria)
 
 				INSERT INTO Articulo.categoria(Descripcion,Linea_De_Producto)
 				(
@@ -420,17 +376,8 @@ DELETE FROM Articulo.Producto
 	END;
 	go
 
-Exec Articulo.Productos_ImpImportar 'C:\Temp\Productos_importados.xlsx';
-go
 
-DELETE FROM Articulo.Categoria
-
-select * FROM Articulo.Categoria
-select * from articulo.Producto
-
--- Arreglar hora y eliminar duplicados, que se queden con el mas reciente.
-
-------PRODUCTOS Electronicos-------
+------IMPRORTAMOS PRODUCTOS ELECTRONICOS-------
 
 	CREATE OR ALTER PROCEDURE Articulo.ElectronicosImportar
 		@data_file_path VARCHAR(MAX)
@@ -482,14 +429,8 @@ select * from articulo.Producto
 	END;
 	go
 
-Exec Articulo.ElectronicosImportar 'C:\Temp\Electronic accessories.xlsx';
-go
 
-select * FROM Articulo.Categoria
-select * from articulo.Producto
-
-
---IMPORTAR MEDIOS DE PAGO--
+--IMPORTAMOS MEDIOS DE PAGO--
 
 CREATE OR ALTER PROCEDURE Venta.MediodePagoImportar
 	@data_file_path VARCHAR(MAX)
@@ -530,15 +471,8 @@ BEGIN
 END;
 GO
 
-EXEC Venta.MediodePagoImportar
-	@data_file_path = 'C:\Temp\Informacion_complementaria.xlsx';
-GO
 
-select * from Venta.Medio_Pago
-
-
-
---VENTAS REGISTRADAS--
+--IMPORTAMOS VENTAS REGISTRADAS--
 CREATE OR ALTER PROCEDURE Venta.VentasImportar
 	@data_file_path VARCHAR(MAX)
 AS
@@ -581,9 +515,7 @@ BEGIN
 	';
 	EXEC sp_executesql @sql;
 
-	    -- Reemplazar caracteres en los nombres de productos
-	 UPDATE #tmpVentas
-    SET iDPago = REPLACE(LTRIM(RTRIM(iDPago)), '''', '');
+	--Intentamos arreglar algunos símbolos que nos daban problemas
 
     UPDATE #tmpVentas
     SET NombreProducto = REPLACE(NombreProducto, 'Ã³', 'ó');
@@ -600,13 +532,15 @@ BEGIN
     UPDATE #tmpVentas
     SET NombreProducto = REPLACE(NombreProducto, N'Ã±', 'ñ');
 
+	 UPDATE #tmpVentas
+    SET iDPago = REPLACE(LTRIM(RTRIM(iDPago)), '''', '');
+
 	UPDATE #tmpVentas
 		SET Ciudad = Case
 			WHEN Ciudad = 'Mandalay' THEN 'Lomas del Mirador'
 			When Ciudad = 'Yangon' THEN 'Ramos Mejia'
 			ELSE 'San Justo'
 			END;
-
 
 	INSERT INTO Venta.Factura(NumeroFactura,Tipo,Monto,EstadoPago)
 		SELECT  tmp.IDFactura, 
@@ -631,11 +565,6 @@ BEGIN
 				FROM Venta.Factura f
 				WHERE f.NumeroFactura = tmp.IDFactura collate Latin1_General_CI_AI)
 		FROM #tmpVentas tmp
-
-		SELECT IdPago, COUNT(*)
-		FROM Venta.Venta_Registrada
-		GROUP BY IdPago
-		HAVING COUNT(*) > 1; 
 
 		--- INGRESO SI COINCIDE
 		INSERT INTO Venta.Detalle_Venta(Cantidad, PrecioUnitario, Subtotal, Id_Venta, Id_Prod)
@@ -669,27 +598,3 @@ BEGIN
 		DROP TABLE IF EXISTS #tmpVentas;
 END;
 GO
-
-Exec Venta.VentasImportar 'C:\Temp\Ventas_registradas.csv';
-go
-
-select * from Venta.Detalle_Venta	
-
-select * from Venta.Venta_Registrada -- Posible borrar la fk id_cli
-
-select * from Venta.Factura
-
-delete from venta.ventasProductosNoRegistrados
-
-delete from Venta.Detalle_Venta
-go
-
-delete from Venta.Venta_Registrada
-go
-
-delete from Venta.Factura
-go
-
-select *
-from venta.ventasProductosNoRegistrados -- Para ver los simbolos que no se entienden.
--- Agregar Productos no registrados, sacar entidad debil detalle venta  agregar id pk.
