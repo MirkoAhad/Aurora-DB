@@ -72,10 +72,14 @@ Go
 Exec Venta.Modificar_Sucursal 3,'Avenida Siempre Viva','Calle falsa 123','Direccion Falsa de prueba','2342-1232','M a J 7 p.m - 11 p.m'; 
 Go
 
-Exec Venta.Baja_Sucursal 'Av. Brig. Gral. Juan Manuel de Rosas 3634, B1754 San Justo, Provincia de Buenos Aires'; --Dar de baja la sucursal con borrado logico.
+Exec Venta.Baja_Sucursal 1; --Dar de baja la sucursal con borrado logico.
 Go
 
+Exec Venta.Baja_Sucursal 1; --Detecta que ya fue dado de baja y no lo permite.
+Go
 
+Exec Venta.Baja_Sucursal 10; --Detecta que no existe la sucursal
+Go
 	
 -- Insercion de datos en Categoria 
 

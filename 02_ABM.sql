@@ -35,18 +35,21 @@ END;
 GO
 
 create or alter procedure Venta.Baja_Sucursal --Dar de baja la sucursal
-@Dir varchar (50)
+@Id_Suc INT
 AS
 BEGIN
-IF exists (select 1 from Venta.Sucursal where Direccion=@Dir)
+IF exists (select 1 from Venta.Sucursal where Id_Suc = @Id_Suc and Estado = 1)
 	BEGIN
 	update Venta.Sucursal
 	set  Estado = 0
-	Where Direccion = @Dir and Estado = 1 
 	END
+
 	ELSE
+
 	BEGIN
-	RAISERROR('ERROR EN EL BORRADO LOGICO POR LA DIRECCION: %s',10,2,@Dir);
+		DECLARE @Mensaje VARCHAR(100)
+		SET @Mensaje = CONCAT('La sucursal con ID ', @Id_Suc, ' no existe o ya fue dado de baja');
+		RAISERROR(@Mensaje, 10, 2);
 	END
 END;
 GO
