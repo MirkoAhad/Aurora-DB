@@ -9,8 +9,8 @@ ROWTERMINATOR = '0x0A') -- Define el delimitador de filas
 */
 
 USE [master] 
+GO
 
-GO 
 
 EXEC master.dbo.sp_MSset_oledb_prop N'Microsoft.ACE.OLEDB.12.0', N'AllowInProcess', 1 
 
@@ -159,7 +159,6 @@ GO
  from Persona.Empleado
 
 
-ROUND(((99 - 1) * RAND() + 1), 0) +  + ROUND(((9 - 1) * RAND() + 1), 0) --Para que?
 
 --Importamos las categorias
 
@@ -347,7 +346,7 @@ BEGIN
 		DROP TABLE IF EXISTS #tmpCatalogo;
 END;
 GO
-
+-- Verificar duplicados
 Exec Articulo.CatalogoImportar 'C:\Temp\catalogo.csv';
 go
 
@@ -424,12 +423,12 @@ DELETE FROM Articulo.Producto
 Exec Articulo.Productos_ImpImportar 'C:\Temp\Productos_importados.xlsx';
 go
 
-
+DELETE FROM Articulo.Categoria
 
 select * FROM Articulo.Categoria
 select * from articulo.Producto
 
-
+-- Arreglar hora y eliminar duplicados, que se queden con el mas reciente.
 
 ------PRODUCTOS Electronicos-------
 
@@ -601,6 +600,14 @@ BEGIN
     UPDATE #tmpVentas
     SET NombreProducto = REPLACE(NombreProducto, N'Ã±', 'ñ');
 
+	UPDATE #tmpVentas
+		SET Ciudad = Case
+			WHEN Ciudad = 'Mandalay' THEN 'Lomas del Mirador'
+			When Ciudad = 'Yangon' THEN 'Ramos Mejia'
+			ELSE 'San Justo'
+			END;
+
+
 	INSERT INTO Venta.Factura(NumeroFactura,Tipo,Monto,EstadoPago)
 		SELECT  tmp.IDFactura, 
 				tmp.TipoFactura, 
@@ -628,19 +635,8 @@ BEGIN
 		SELECT IdPago, COUNT(*)
 		FROM Venta.Venta_Registrada
 		GROUP BY IdPago
-		HAVING COUNT(*) > 1; -- todos estos ID pago me tiran el valor 12
+		HAVING COUNT(*) > 1; 
 
-		/*SELECT Id_Venta, Id_Prod, COUNT(*) as Repeticiones
-		FROM Venta.Detalle_Venta
-		GROUP BY Id_Venta, Id_Prod
-		HAVING COUNT(*) > 1;
-
-		SELECT v.Id, COUNT(DISTINCT v.IdPago) as DistintosPagos
-		FROM Venta.Venta_Registrada v
-		GROUP BY v.Id
-		HAVING COUNT(DISTINCT v.IdPago) > 1;*/
-
-	
 		--- INGRESO SI COINCIDE
 		INSERT INTO Venta.Detalle_Venta(Cantidad, PrecioUnitario, Subtotal, Id_Venta, Id_Prod)
 		SELECT  
@@ -666,33 +662,6 @@ BEGIN
 		FROM #tmpVentas v 
 		WHERE v.NombreProducto collate Latin1_General_CI_AI NOT IN (SELECT nombre FROM Articulo.Producto);
 
-
-		
-		/*INSERT INTO Venta.Detalle_Venta(Cantidad, PrecioUnitario,Subtotal, Id_Venta, Id_Prod)
-		SELECT top 50 tmp.Cantidad, tmp.PrecioUnitario, tmp.PrecioUnitario * tmp.Cantidad, 
-		(SELECT TOP 1 v.Id -- Me tira duplicados
-			FROM Venta.Venta_Registrada v
-			WHERE v.IdPago = tmp.IDPago collate Latin1_General_CI_AI),
-		(SELECT TOP 1 p.Id_Prod -- me tira duplicados
-			FROM Articulo.Producto p
-			WHERE p.Nombre = tmp.NombreProducto collate Latin1_General_CI_AI)*/ --esto anda pero con top 5
-
-
-		-- Aseguramos que solo se insertan productos que existen
-		/*
-		INSERT INTO Venta.Detalle_Venta(Cantidad, PrecioUnitario,Subtotal, Id_Venta, Id_Prod)
-		SELECT top 5
-			tmp.Cantidad, 
-			tmp.PrecioUnitario, 
-			tmp.PrecioUnitario * tmp.Cantidad, 
-		(SELECT v.Id 
-			FROM Venta.Venta_Registrada v
-			WHERE v.IdPago = tmp.IDPago),
-		(SELECT p.Id_Prod 
-			FROM Articulo.Producto p
-			WHERE p.Nombre = tmp.NombreProducto)
-		FROM #tmpVentas tmp
-		*/
 	END TRY
 	BEGIN CATCH
 		PRINT 'Error al importar Excel Ventas Registradas' + ERROR_MESSAGE();
@@ -706,10 +675,11 @@ go
 
 select * from Venta.Detalle_Venta	
 
-select * from Venta.Venta_Registrada
+select * from Venta.Venta_Registrada -- Posible borrar la fk id_cli
 
 select * from Venta.Factura
 
+delete from venta.ventasProductosNoRegistrados
 
 delete from Venta.Detalle_Venta
 go
@@ -720,10 +690,6 @@ go
 delete from Venta.Factura
 go
 
-SELECT v.Id 
-FROM Venta.Venta_Registrada v
-WHERE v.IdPago = '0000003100098336062436';  -- Sustituye con un ID de pago válido
-
-SELECT p.Id_Prod 
-FROM Articulo.Producto p
-WHERE p.Nombre = 'Crema facial reaffirmant Luxe caviar Deliplus';  -- Sustituye con un nombre de producto válido
+select *
+from venta.ventasProductosNoRegistrados -- Para ver los simbolos que no se entienden.
+-- Agregar Productos no registrados, sacar entidad debil detalle venta  agregar id pk.
