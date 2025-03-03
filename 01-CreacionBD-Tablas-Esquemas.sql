@@ -3,40 +3,40 @@
 -Conectar con output detalle_venta y venta_registrada CREO QUE LISTO
 - Si un empleado cambia de sucrursal, que el empleado siga vinculado a las ventas que realizo
 -Duplicados clientes  y sucursal
-- Registrar empleados que generan†la†compra*/
+- Registrar empleados que generan¬†la¬†compra*/
 
 -- Grupo:06
--- ChacÛn Mirko Facundo - 43444942
--- Giannni PÈrez, Gabriel Idelmar- 45614379
--- Nielsen, Tomas AgustÌn - 41326589
+-- Chac√≥n Mirko Facundo - 43444942
+-- Giannni P√©rez, Gabriel Idelmar- 45614379
+-- Nielsen, Tomas Agust√≠n - 41326589
 -- Silva , Pablo Ismael - 31641736
 -------------------------------
 -- Fecha de Entrega: 28/02/2025
 -- Bases de Datos Aplicadas
 
 /*Entrega 3
-Luego de decidirse por un motor de base de datos relacional, llegÛ el momento de generar la
-base de datos. En esta oportunidad utilizar·n SQL Server.
-Deber· instalar el DMBS y documentar el proceso. No incluya capturas de pantalla. Detalle
-las configuraciones aplicadas (ubicaciÛn de archivos, memoria asignada, seguridad, puertos,
-etc.) en un documento como el que le entregarÌa al DBA.
-Incluya tambiÈn un DER con el diseÒo de la base de datos. Deben aparecer correctamente
+Luego de decidirse por un motor de base de datos relacional, lleg√≥ el momento de generar la
+base de datos. En esta oportunidad utilizar√°n SQL Server.
+Deber√° instalar el DMBS y documentar el proceso. No incluya capturas de pantalla. Detalle
+las configuraciones aplicadas (ubicaci√≥n de archivos, memoria asignada, seguridad, puertos,
+etc.) en un documento como el que le entregar√≠a al DBA.
+Incluya tambi√©n un DER con el dise√±o de la base de datos. Deben aparecer correctamente
 las relaciones y las claves, pero el formato queda a su criterio.
-Cree la base de datos, entidades y relaciones. Incluya restricciones y claves. Deber· entregar
-un archivo .sql con el script completo de creaciÛn (debe funcionar si se lo ejecuta ìtal cualî es
-entregado en una sola ejecuciÛn). Incluya comentarios para indicar quÈ hace cada mÛdulo
-de cÛdigo.
-Genere store procedures para manejar la inserciÛn, modificado, borrado (si corresponde,
-tambiÈn debe decidir si determinadas entidades solo admitir·n borrado lÛgico) de cada tabla.
-Los nombres de los store procedures NO deben comenzar con ìSPî.
-Algunas operaciones implicar·n store procedures que involucran varias tablas, uso de
+Cree la base de datos, entidades y relaciones. Incluya restricciones y claves. Deber√° entregar
+un archivo .sql con el script completo de creaci√≥n (debe funcionar si se lo ejecuta ‚Äútal cual‚Äù es
+entregado en una sola ejecuci√≥n). Incluya comentarios para indicar qu√© hace cada m√≥dulo
+de c√≥digo.
+Genere store procedures para manejar la inserci√≥n, modificado, borrado (si corresponde,
+tambi√©n debe decidir si determinadas entidades solo admitir√°n borrado l√≥gico) de cada tabla.
+Los nombres de los store procedures NO deben comenzar con ‚ÄúSP‚Äù.
+Algunas operaciones implicar√°n store procedures que involucran varias tablas, uso de
 transacciones, etc. Puede que incluso realicen ciertas operaciones mediante varios SPs.
-Aseg˙rense de que los comentarios que acompaÒen al cÛdigo lo expliquen.
-Genere esquemas para organizar de forma lÛgica los componentes del sistema y aplique esto
-en la creaciÛn de objetos. NO use el esquema ìdboî.
-Todos los SP creados deben estar acompaÒados de juegos de prueba. Se espera que
-realicen validaciones b·sicas en los SP (p/e cantidad mayor a cero, CUIT v·lido, etc.) y que
-en los juegos de prueba demuestren la correcta aplicaciÛn de las validaciones.
+Aseg√∫rense de que los comentarios que acompa√±en al c√≥digo lo expliquen.
+Genere esquemas para organizar de forma l√≥gica los componentes del sistema y aplique esto
+en la creaci√≥n de objetos. NO use el esquema ‚Äúdbo‚Äù.
+Todos los SP creados deben estar acompa√±ados de juegos de prueba. Se espera que
+realicen validaciones b√°sicas en los SP (p/e cantidad mayor a cero, CUIT v√°lido, etc.) y que
+en los juegos de prueba demuestren la correcta aplicaci√≥n de las validaciones.
 Las pruebas deben realizarse en un script separado, donde con comentarios se indique en
 cada caso el resultado esperado */
 -- Creacion de la BDD --
@@ -182,6 +182,8 @@ CREATE TABLE Venta.Nota_De_Credito (
     Fecha DATE NOT NULL,
     Monto Decimal(17,2) NOT NULL,
     Id_Venta INT NOT NULL unique,
+    Numero_Factura CHAR(11) NOT NULL UNIQUE,
+   Creado_Por varchar(40) default current_user, --Empleado que genera la nota de credito.
     CONSTRAINT FK_Venta FOREIGN KEY (Id_Venta) REFERENCES Venta.Venta_Registrada(Id) ON DELETE CASCADE,
 );
 
