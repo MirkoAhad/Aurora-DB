@@ -1,3 +1,10 @@
+/*Falta:
+-unificar factura y venta LISTO
+-Conectar con output detalle_venta y venta_registrada
+- Si un empleado cambia de sucrursal, que el empleado siga vinculado a las ventas que realizo
+-Duplicados clientes  y sucursal
+- Registrar empleados que generan la compra*/
+
 -- Grupo:06
 -- Chacón Mirko Facundo - 43444942
 -- Giannni Pérez, Gabriel Idelmar- 45614379
@@ -143,7 +150,7 @@ CREATE TABLE Venta.Venta_Registrada (
 	NumeroFactura CHAR(11) UNIQUE,
 	TipoFactura CHAR(1),
 	Monto DECIMAL(17,2),
-	EstadoPago VARCHAR(17) DEFAULT 'Pendiente de pago',
+	EstadoPago VARCHAR(17) DEFAULT 'Pagado',
     Fecha DATE,
     Hora TIME,
 	Estado BIT NOT NULL DEFAULT 1, -- para darle de baja

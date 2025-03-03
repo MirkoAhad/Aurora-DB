@@ -49,20 +49,6 @@ Go
 
 
 
--- Insercion de datos Factura 
-
-Exec Venta.Insertar_Factura '750-67-8428','A', 6250.5; -- Inserto un ejemplo de Factura.
-Go
-
-Exec Venta.Insertar_Factura '750-67-842218','A', 6250.5; -- Inserto un ejemplo de Factura.
-Go
-
-Exec Venta.Eliminar_Factura '750-67-8428'; -- Borrado Logico de Factura.
-Go
-
-Exec Venta.Pagar_Factura '750-67-8428'; -- Cambiar el estado a pagado.
-Go
-
 -- Insercion de datos en Sucursal 
 
 Exec Venta.Insertar_Sucursal  'Yangon','San Justo','Av. Brig. Gral. Juan Manuel de Rosas 3634, B1754 San Justo, Provincia de Buenos Aires','5555-5551',
@@ -112,19 +98,29 @@ Go
 Exec Persona.Baja_Empleado 257097; -- Borrado Logico da de baja al empleado
 Go
 
--- Insercion de datos de prueba Venta Registrada 
-
-Exec Venta.Insertar_VRegistrada 0000003100099475144530, '2020-02-20','0005',257097,1,1,1;
+-- Insercion de datos de una nueva Venta Registrada y su detalle venta. 
+-- Ejecutar todo junto hasta el Go
+DECLARE @IdVenta INT;
+Exec Venta.Insertar_VRegistrada 0000003100099475144530, '05511-97799', 'A',10000, 
+'2020-02-20','0005',257097,1,1, @Id_Venta = @IdVenta OUTPUT
+Exec Venta.Insertar_Detalle_Venta 10,5,100.25,40,@IdVenta; --Inserta un detalle de venta como ejemplo.
 Go
 
-Exec Venta.Eliminar_VRegistrada 0000003100099475144530;
+
+--Si deseo insertar mas detalles de ventas a la misma venta:
+-- Ejecutar todo junto hasta el Go
+
+DECLARE @IdVenta INT;
+Exec Venta.Insertar_VRegistrada @NumeroFactura ='01111-97799',  @Id_Venta = @IdVenta OUTPUT
+Exec Venta.Insertar_Detalle_Venta 10,5,14.2,4,@IdVenta; --Inserta un detalle de venta como ejemplo.
+Go
+
+--Eliminar Venta registrada por numero de factura
+Exec Venta.Eliminar_VRegistrada '373-73-7910';
 Go
 
 -- Insercion de datos de prueba Detalle Venta
 
-
-Exec Venta.Insertar_Detalle_Venta 25,5,500.25,1,1; --Inserta un detalle de venta como ejemplo.
-Go
 Exec Venta.Baja_Detalle_Venta 1,1; --Da de baja un Detalle de Venta sin borrado logico.
 Go
 

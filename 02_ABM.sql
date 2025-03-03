@@ -179,71 +179,6 @@ ELSE
 END;
 GO
 
--- Para la tabla de Factura
-
-CREATE OR ALTER PROCEDURE Venta.Insertar_Factura
-@NumeroFactura CHAR(11),
-@Tipo CHAR (1),
-@Monto Decimal (17,2)
-AS
-BEGIN
-IF NOT EXISTS (Select 1 From Venta.Factura Where NumeroFactura = @NumeroFactura)
-	BEGIN
-	insert Venta.Factura (NumeroFactura,Tipo,Monto)
-	values (@NumeroFactura, @Tipo, @Monto);
-	END
-	ELSE
-		BEGIN
-		RAISERROR ('No se puede insertar datos con ese numero %s',10,2,@NumeroFactura);
-		END
-END;
-GO
-
---Borado logico de factura
-
-CREATE or ALTER PROCEDURE Venta.Eliminar_Factura
-@NumeroFactura CHAR(11)
-AS
-BEGIN
-	IF EXISTS (SELECT 1 FROM Venta.Factura where Estado = 0 and NumeroFactura = @NumeroFactura)
-	BEGIN
-		RAISERROR('Factura ya eliminada',16,1);
-		RETURN;
-	END
-
-	DECLARE @modulo NVARCHAR(50) = 'Factura';
-	UPDATE Venta.Factura
-	SET Estado = 0
-	WHERE NumeroFactura = @NumeroFactura;
-
-	IF @@ROWCOUNT > 0
-	BEGIN
-		DECLARE @texto NVARCHAR(250);
-		SET @texto =CONCAT('Se ha borrado logicamente la factura con el ID : ', @NumeroFactura);
-		--EXEC registros.insertarLog @modulo, @texto;
-	END
-END;
-GO
-
-
--- Cambiar Estado de la factura.
-
-CREATE OR ALTER PROCEDURE Venta.Pagar_Factura
-@NumeroFactura CHAR(11)
-AS
-BEGIN
-IF EXISTS (Select 1 From Venta.Factura Where NumeroFactura = @NumeroFactura)
-	BEGIN
-	UPDATE Venta.Factura
-	SET EstadoPago = 'Pagado'
-	Where NumeroFactura = @NumeroFactura and EstadoPago ='Pendiente de pago'
-	END
-	ELSE
-		BEGIN
-		RAISERROR('No fue posible encontrar la Id :%s',10,2,@NumeroFactura);
-		END
-END;
-GO
 
 -- Para la tabla Categoria
 
@@ -410,52 +345,60 @@ END;
 GO
 	
 
--- Para tabla Venta_Registrada
+-- Para ingresar una venta registrada con su factura
 
 CREATE OR ALTER PROCEDURE Venta.Insertar_VRegistrada
-@Id_Pago varchar(30),
-@Fecha DATE,
-@Hora TIME,
-@Id_Emp int,
-@Id_MP int,
-@Id_Cli int,
-@Id_Fac int
+@IdPago varchar(30) = NULL,
+@NumeroFactura CHAR(11),
+@TipoFactura CHAR(1) = NULL,
+@Monto DECIMAL(17,2) = NULL,
+@Fecha DATE =NULL,
+@Hora TIME = NULL,
+@Id_Emp int = NULL,
+@Id_Cli int = NULL,
+@Id_MP int = NULL,
+@Id_Venta int OUTPUT --me devuelve el ID venta para luego usarlo en detalle venta
+
 AS
 BEGIN
-IF NOT EXISTS (Select 1 From Venta.Venta_Registrada Where IdPago = @Id_Pago)
+IF NOT EXISTS (Select 1 From Venta.Venta_Registrada Where NumeroFactura = @NumeroFactura)
 	BEGIN
-		insert Venta.Venta_Registrada (IdPago,Fecha,Hora,Id_Emp,Id_Cli,Id_MP,Id_Fac)
-		values (@Id_Pago,@Fecha,@Hora,@Id_Emp,@Id_Cli,@Id_MP,@Id_Fac);
+		insert Venta.Venta_Registrada (IdPago,NumeroFactura,TipoFactura,Monto,Fecha,Hora,Id_Emp,Id_Cli,Id_MP)
+		values (@IdPago,@NumeroFactura,@TipoFactura,@Monto,@Fecha,@Hora,@Id_Emp,@Id_Cli,@Id_MP);
+		set @Id_Venta = SCOPE_IDENTITY();
 	END
 	ELSE
 		BEGIN
-			RAISERROR('Ya se uso ese Id: %s',10,2,@Id_Pago);
+			set @Id_Venta = 
+			(SELECT v.Id
+			FROM venta.Venta_Registrada v
+			where v.NumeroFactura = @NumeroFactura)
+			RAISERROR('ID de venta ya generado: %d',10,2,@Id_Venta);
 		END
 END;
 GO
 
--- Borrado logico de una venta registrada
+-- Borrado logico de una venta registrada por ID Factura
 
 CREATE OR ALTER PROCEDURE Venta.Eliminar_VRegistrada
-@Id_Pago bigint
+@NumeroFactura CHAR(11)
 AS
 BEGIN
-	IF EXISTS(Select 1 From Venta.Venta_Registrada where IdPago = @Id_Pago and Estado = 0)
+	IF EXISTS(Select 1 From Venta.Venta_Registrada where NumeroFactura = @NumeroFactura and Estado = 0)
 	BEGIN
 		RAISERROR('Venta ya eliminada',16,1);	
 		RETURN;
 	END
 
-	DECLARE @modulo NVARCHAR(50) = '';
 	UPDATE Venta.Venta_Registrada
 	SET Estado = 0
-	WHERE IdPago = @Id_Pago;
+	WHERE NumeroFactura = @NumeroFactura;
 
 	IF @@ROWCOUNT > 0
 	BEGIN
 		DECLARE @texto NVARCHAR(250);
-		SET @texto =CONCAT('Se ha borrado logicamente la venta con el ID : ', @Id_Pago);
-		--EXEC registros.insertarLog @modulo, @texto;
+		SET @texto =CONCAT('Se ha borrado logicamente la venta con el ID :', @NumeroFactura);
+		PRINT @texto;
 	END
 END;
 GO
