@@ -552,7 +552,7 @@ BEGIN
 			ELSE 'San Justo'
 			END;
 
-	INSERT INTO Venta.Factura(NumeroFactura,Tipo,Monto,EstadoPago)
+	/*INSERT INTO Venta.Factura(NumeroFactura,Tipo,Monto,EstadoPago)
 		SELECT  tmp.IDFactura, 
 				tmp.TipoFactura, 
 				tmp.Cantidad * PrecioUnitario, 
@@ -561,19 +561,20 @@ BEGIN
 		WHERE NOT EXISTS (
 		 SELECT 1 FROM Venta.Factura f 
 		 WHERE f.NumeroFactura = tmp.IDFactura collate Latin1_General_CI_AI
-			);
+			);*/
 
-		INSERT INTO Venta.Venta_Registrada(IDPago,Fecha,Hora,ID_Emp,Id_MP,ID_Fac)
-		SELECT tmp.IDPago,
+		INSERT INTO Venta.Venta_Registrada(NumeroFactura,TipoFactura,Monto,EstadoPago,IDPago,Fecha,Hora,ID_Emp,Id_MP)
+		SELECT tmp.IDFactura, 
+		tmp.TipoFactura, 
+		tmp.Cantidad * PrecioUnitario, 
+		'Pagado',
+		tmp.IDPago,
 		CONVERT(DATE, tmp.Fecha, 101),
 		tmp.Hora,
 		tmp.LegajoEmpleado,
 			(SELECT m.Id_MP
 			FROM Venta.Medio_Pago m
-				WHERE m.Nombre = tmp.MedioPago collate Latin1_General_CI_AI),
-		(SELECT f.Id
-				FROM Venta.Factura f
-				WHERE f.NumeroFactura = tmp.IDFactura collate Latin1_General_CI_AI)
+				WHERE m.Nombre = tmp.MedioPago collate Latin1_General_CI_AI)
 		FROM #tmpVentas tmp
 
 		--- INGRESO SI COINCIDE

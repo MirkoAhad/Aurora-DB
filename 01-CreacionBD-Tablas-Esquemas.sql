@@ -68,18 +68,6 @@ CREATE TABLE Venta.Medio_Pago (
 	Baja Date default null
 );
 
-CREATE TABLE Venta.Factura (
-    Id INT IDENTITY (1,1) PRIMARY KEY,
-	NumeroFactura CHAR(11) UNIQUE,
-    Tipo CHAR(1),
-    Monto DECIMAL(17,2), 
-	EstadoPago VARCHAR(17) DEFAULT 'Pendiente de pago',
-	Estado BIT DEFAULT 1, 
-    CONSTRAINT CK_Tipo CHECK( Tipo IN ('A','B','C')),
-	CONSTRAINT CK_NumeroFactura CHECK (NumeroFactura LIKE '[0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][0-9][0-9]')
-);
-
-
 CREATE TABLE  Venta.Sucursal (
     Id_Suc INT IDENTITY (1,1) PRIMARY KEY,
     Localidad_Ori VARCHAR (40) not null,
@@ -110,6 +98,8 @@ CREATE TABLE Articulo.Producto (
     ID_Cat INT,
     CONSTRAINT FK_Cat FOREIGN KEY (ID_Cat) REFERENCES Articulo.Categoria(ID_Cat)
 );
+
+
 
 create table venta.ventasProductosNoRegistrados -- Posibles datos de excel de ventas que no podemos hacer coincidir con los productos del catalogo.
 	(
@@ -150,15 +140,18 @@ create table venta.ventasProductosNoRegistrados -- Posibles datos de excel de ve
 CREATE TABLE Venta.Venta_Registrada (
 	Id INT IDENTITY(1,1) primary key,
 	IdPago VARCHAR(30),
+	NumeroFactura CHAR(11) UNIQUE,
+	TipoFactura CHAR(1),
+	Monto DECIMAL(17,2),
+	EstadoPago VARCHAR(17) DEFAULT 'Pendiente de pago',
     Fecha DATE,
     Hora TIME,
-	Estado BIT NOT NULL DEFAULT 1,
+	Estado BIT NOT NULL DEFAULT 1, -- para darle de baja
     Id_Emp INT,
-    Id_Fac INT,
     Id_Cli INT,
     Id_MP INT,
+	CONSTRAINT CK_TipoFactura CHECK(TipoFactura IN ('A','B','C')),
     CONSTRAINT FK_Emp FOREIGN KEY (Id_Emp) REFERENCES Persona.Empleado(Legajo),
-    CONSTRAINT FK_Fac_VR FOREIGN KEY (Id_Fac) REFERENCES Venta.Factura(Id),
     CONSTRAINT FK_Cli FOREIGN KEY (Id_Cli) REFERENCES Persona.Cliente(Id_Cli),
     CONSTRAINT FK_MP FOREIGN KEY (Id_MP) REFERENCES Venta.Medio_Pago(Id_MP)
 	);	
@@ -182,9 +175,8 @@ CREATE TABLE Venta.Nota_De_Credito (
     Id INT IDENTITY(1,1) primary key, 
     Fecha DATE NOT NULL,
     Monto Decimal(17,2) NOT NULL,
-    Id_Fac INT NOT NULL unique,
-    CONSTRAINT FK_Fac_Nota FOREIGN KEY (Id_Fac) REFERENCES Venta.Factura(Id) ON DELETE CASCADE,
+    Id_Venta INT NOT NULL unique,
+    CONSTRAINT FK_Venta FOREIGN KEY (Id_Venta) REFERENCES Venta.Venta_Registrada(Id) ON DELETE CASCADE,
 );
-
 
 
