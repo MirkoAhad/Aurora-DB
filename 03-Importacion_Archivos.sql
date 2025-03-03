@@ -576,6 +576,9 @@ BEGIN
 			FROM Venta.Medio_Pago m
 				WHERE m.Nombre = tmp.MedioPago collate Latin1_General_CI_AI)
 		FROM #tmpVentas tmp
+		WHERE NOT EXISTS (
+		 SELECT 1 FROM Venta.Venta_Registrada vr
+		 WHERE  vr.NumeroFactura = tmp.IDFactura collate Latin1_General_CI_AI)
 
 		--- INGRESO SI COINCIDE
 		INSERT INTO Venta.Detalle_Venta(Cantidad, PrecioUnitario, Subtotal, Id_Venta, Id_Prod)

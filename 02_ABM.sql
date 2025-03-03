@@ -345,27 +345,55 @@ END;
 GO
 	
 
--- Para ingresar una venta registrada con su factura
+-- Para ingresar una venta registrada con su factura y sus detalles de venta
 
 CREATE OR ALTER PROCEDURE Venta.Insertar_VRegistrada
 @IdPago varchar(30) = NULL,
 @NumeroFactura CHAR(11),
 @TipoFactura CHAR(1) = NULL,
-@Monto DECIMAL(17,2) = NULL,
 @Fecha DATE =NULL,
 @Hora TIME = NULL,
 @Id_Emp int = NULL,
 @Id_Cli int = NULL,
 @Id_MP int = NULL,
-@Id_Venta int OUTPUT --me devuelve el ID venta para luego usarlo en detalle venta
+@Detalle Venta.Detalle_Venta_Tipo READONLY -- Tabla para los productos de detalle_Venta
+--@Id_Venta int OUTPUT --me devuelve el ID venta para luego usarlo en detalle venta
 
 AS
 BEGIN
+SET NOCOUNT ON;
+
+--Si la venta no existe, procedo...
 IF NOT EXISTS (Select 1 From Venta.Venta_Registrada Where NumeroFactura = @NumeroFactura)
 	BEGIN
-		insert Venta.Venta_Registrada (IdPago,NumeroFactura,TipoFactura,Monto,Fecha,Hora,Id_Emp,Id_Cli,Id_MP)
-		values (@IdPago,@NumeroFactura,@TipoFactura,@Monto,@Fecha,@Hora,@Id_Emp,@Id_Cli,@Id_MP);
+		--Inserto la venta SIN MONTO
+		insert Venta.Venta_Registrada (IdPago,NumeroFactura,TipoFactura,Fecha,Hora,Id_Emp,Id_Cli,Id_MP)
+		values (@IdPago,@NumeroFactura,@TipoFactura,@Fecha,@Hora,@Id_Emp,@Id_Cli,@Id_MP);
+		
+		--Obtengo el ID de la venta recien creada
+		declare @Id_Venta INT;
 		set @Id_Venta = SCOPE_IDENTITY();
+
+		--Inserto los detalles de venta en mi tabla variable
+		INSERT INTO Venta.Detalle_Venta(Cantidad, PrecioUnitario, Subtotal, Id_Prod, Id_Venta)
+		SELECT
+			d.Cantidad,
+			p.Precio_Actual,
+			d.Cantidad * p.Precio_Actual,
+			d.IdProd,
+			@Id_Venta
+		FROM @Detalle d 
+		INNER JOIN Articulo.Producto p ON d.IdProd = p.Id_Prod
+
+		--Actualizo el monto de mi venta
+
+		UPDATE Venta.Venta_Registrada
+		SET Monto = 
+		(SELECT SUM(Subtotal) 
+		FROM Venta.Detalle_Venta
+		WHERE Id_Venta = @Id_Venta)
+		WHERE Id = @Id_Venta;
+
 	END
 	ELSE
 		BEGIN

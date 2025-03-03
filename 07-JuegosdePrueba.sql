@@ -83,6 +83,9 @@ Go
 Exec Articulo.Insertar_Producto 'Agua','20150210',250,'Distribuidor',15,'KG',1; -- Inserto como ejemplo en la tabla de Producto.
 Go
 
+Exec Articulo.Insertar_Producto 'Agua','20150210',250,'Distribuidor',15,'KG',1; -- Inserto como ejemplo en la tabla de Producto.
+Go
+
 Exec Articulo.Baja_Producto 'Agua'; --Dar de baja el producto.
 Go
 
@@ -98,31 +101,47 @@ Go
 Exec Persona.Baja_Empleado 257097; -- Borrado Logico da de baja al empleado
 Go
 
--- Insercion de datos de una nueva Venta Registrada y su detalle venta. 
--- Ejecutar todo junto hasta el Go
-DECLARE @IdVenta INT;
-Exec Venta.Insertar_VRegistrada 0000003100099475144530, '05511-97799', 'A',10000, 
-'2020-02-20','0005',257097,1,1, @Id_Venta = @IdVenta OUTPUT
-Exec Venta.Insertar_Detalle_Venta 10,5,100.25,40,@IdVenta; --Inserta un detalle de venta como ejemplo.
-Go
+
+--Insertar venta registrada con sus detalles de venta--
+
+--Declaro mi tabla variable para insertar los productos
+DECLARE @Detalle Venta.Detalle_Venta_Tipo
+
+-- Insertamos productos de prueba en la tabla de tipo
+INSERT INTO @Detalle (IdProd, Cantidad)
+VALUES
+    (5,2),  -- Producto 1,  Cantidad 2
+    (9,3),   -- Producto 2, Cantidad 3
+    (10,5);   -- Producto 3, Cantidad 5
+
+Exec Venta.Insertar_VRegistrada 
+@IdPago = 0000003100099475144530, 
+@NumeroFactura = '05255-31799',
+@TipoFactura = 'A',
+@Fecha = '2020-02-20',
+@Hora = '0005',
+@Id_Emp = 257097,
+@Id_Cli = 1,
+@Id_MP = 1,
+@Detalle = @Detalle
+
+go
+
+--Borrado logico de una venta registrada mediante su ID de factura
+
+EXEC Venta.Eliminar_VRegistrada
+@NumeroFactura = '05255-97799'
 
 
---Si deseo insertar mas detalles de ventas a la misma venta:
--- Ejecutar todo junto hasta el Go
 
-DECLARE @IdVenta INT;
-Exec Venta.Insertar_VRegistrada @NumeroFactura ='01111-97799',  @Id_Venta = @IdVenta OUTPUT
-Exec Venta.Insertar_Detalle_Venta 10,5,14.2,4,@IdVenta; --Inserta un detalle de venta como ejemplo.
-Go
 
---Eliminar Venta registrada por numero de factura
-Exec Venta.Eliminar_VRegistrada '373-73-7910';
-Go
 
--- Insercion de datos de prueba Detalle Venta
 
-Exec Venta.Baja_Detalle_Venta 1,1; --Da de baja un Detalle de Venta sin borrado logico.
-Go
+
+
+
+
+
 
 -- Borrar las tablas para crearlas nuevamente asi se realiza correctamente la importacion
 drop table if exists Venta.Detalle_Venta;

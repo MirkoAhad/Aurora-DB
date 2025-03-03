@@ -1,6 +1,6 @@
 /*Falta:
 -unificar factura y venta LISTO
--Conectar con output detalle_venta y venta_registrada
+-Conectar con output detalle_venta y venta_registrada CREO QUE LISTO
 - Si un empleado cambia de sucrursal, que el empleado siga vinculado a las ventas que realizo
 -Duplicados clientes  y sucursal
 - Registrar empleados que generan la compra*/
@@ -40,7 +40,6 @@ en los juegos de prueba demuestren la correcta aplicación de las validaciones.
 Las pruebas deben realizarse en un script separado, donde con comentarios se indique en
 cada caso el resultado esperado */
 -- Creacion de la BDD --
-
 create database Com1353G06
 go
 
@@ -184,6 +183,11 @@ CREATE TABLE Venta.Nota_De_Credito (
     Monto Decimal(17,2) NOT NULL,
     Id_Venta INT NOT NULL unique,
     CONSTRAINT FK_Venta FOREIGN KEY (Id_Venta) REFERENCES Venta.Venta_Registrada(Id) ON DELETE CASCADE,
+);
+
+CREATE TYPE Venta.Detalle_Venta_Tipo AS TABLE (
+    IdProd INT NOT NULL,
+	Cantidad INT NOT NULL
 );
 
 

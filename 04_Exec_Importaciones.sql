@@ -62,3 +62,5 @@ GO
 
 Exec Venta.VentasImportar 'C:\Temp\Ventas_registradas.csv';
 go
+
+select * from Venta.Venta_Registrada
