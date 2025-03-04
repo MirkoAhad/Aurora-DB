@@ -156,10 +156,12 @@ CREATE TABLE Venta.Venta_Registrada (
     Id_Emp INT,
     Id_Cli INT,
     Id_MP INT,
+	Id_Suc INT,
 	CONSTRAINT CK_TipoFactura CHECK(TipoFactura IN ('A','B','C')),
     CONSTRAINT FK_Emp FOREIGN KEY (Id_Emp) REFERENCES Persona.Empleado(Legajo),
     CONSTRAINT FK_Cli FOREIGN KEY (Id_Cli) REFERENCES Persona.Cliente(Id_Cli),
-    CONSTRAINT FK_MP FOREIGN KEY (Id_MP) REFERENCES Venta.Medio_Pago(Id_MP)
+    CONSTRAINT FK_MP FOREIGN KEY (Id_MP) REFERENCES Venta.Medio_Pago(Id_MP),
+	CONSTRAINT FK_SUC_VR FOREIGN KEY (Id_Suc) REFERENCES Venta.Sucursal(Id_Suc) -- Si el empleado cambia de suc la venta sigue vinculada al empleado
 	);	
 
 
