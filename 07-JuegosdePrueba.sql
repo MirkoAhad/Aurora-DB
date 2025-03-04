@@ -117,10 +117,10 @@ VALUES
 
 Exec Venta.Insertar_VRegistrada 
 @IdPago = 0000003100099475144530, 
-@NumeroFactura = '20955-34799',
+@NumeroFactura = '20957-34799',
 @TipoFactura = 'A',
 @Fecha = '2020-02-20',
-@Hora = '2020',
+@Hora = '20:20',
 @Id_Emp = 257020,
 @Id_Cli = 1,
 @Id_MP = 1,
