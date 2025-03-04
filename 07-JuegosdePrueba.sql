@@ -55,13 +55,14 @@ Exec Venta.Insertar_Sucursal  'Yangon','San Justo','Av. Brig. Gral. Juan Manuel 
 'L a V 8 a. m.–9 p. m.S y D 9 a. m.-8 p. m.'; -- Inserto un Ejemplo de Sucursal.
 Go
 
-Exec Venta.Modificar_Sucursal 3,'Avenida Siempre Viva','Calle falsa 123','Direccion Falsa de prueba','2342-1232','M a J 7 p.m - 11 p.m'; 
+--Modifica sucursal
+Exec Venta.Modificar_Sucursal 4,'Avenida Siempre Viva','Calle falsa 123','Direccion Falsa de prueba','2342-1232','M a J 7 p.m - 11 p.m'; 
 Go
 
-Exec Venta.Baja_Sucursal 1; --Dar de baja la sucursal con borrado logico.
+Exec Venta.Baja_Sucursal 4; --Dar de baja la sucursal con borrado logico.
 Go
 
-Exec Venta.Baja_Sucursal 1; --Detecta que ya fue dado de baja y no lo permite.
+Exec Venta.Baja_Sucursal 4; --Detecta que ya fue dado de baja y no lo permite.
 Go
 
 Exec Venta.Baja_Sucursal 10; --Detecta que no existe la sucursal
@@ -69,20 +70,19 @@ Go
 	
 -- Insercion de datos en Categoria 
 
-
 Exec Articulo.Insertar_Categoria 'Agua','Almacen' --Agrego un ejemplo en la tabla Categoria.
 Go
-
 
 Exec Articulo.Baja_Categoria 'Agua';  -- Dar de baja la categoria.
 Go
 
-
+select * from Articulo.Producto
 -- Insercion de datos de Producto 
 
 Exec Articulo.Insertar_Producto 'Agua','20150210',250,'Distribuidor',15,'KG',1; -- Inserto como ejemplo en la tabla de Producto.
 Go
 
+--Producto ya insertado
 Exec Articulo.Insertar_Producto 'Agua','20150210',250,'Distribuidor',15,'KG',1; -- Inserto como ejemplo en la tabla de Producto.
 Go
 
@@ -95,11 +95,48 @@ Exec Persona.Insertar_Empleado 257097,'Alejandro','Gonzalez',46393021,
 'Avenida siempre viva 123','Cajero','AleGon@gmail.com','AleGon@SuperA.com','TM',20463930213,2,'clave'; --Inserto un empleado.
 Go
 
-Exec Persona.Modificar_Empleado 257097,'Calle falsa 123','Supervisor','AleGon@gmail.com','AleGon@SuperA.com','JC',4, 'clave'; --Modifico los datos del empleado.
-Go
+-- Vemos que empleado 257020 realizo ventas en Sucursal 2
+select * from Venta.Venta_Registrada
+WHERE Id_Emp = 257020
+
+-- Modificamos sucursal del empleado 257020 a la sucursal 1
+--Modificamos la sucursal de trabajo del empleado pero la sucursal sigue vinculada a la venta registrada
+Exec Persona.Modificar_Empleado 257020,'Calle falsa 123','Supervisor','AleGon@gmail.com','AleGon@SuperA.com','JC',1, 'clave'; --Modifico los datos del empleado.
+Go 
+
+--Insertamos una venta registrada por el empleado 257020
+
+--Declaro mi tabla variable para insertar los productos
+DECLARE @Detalle Venta.Detalle_Venta_Tipo
+-- Insertamos productos de prueba en la tabla de tipo
+INSERT INTO @Detalle (IdProd, Cantidad)
+VALUES
+    (5,2),  -- Producto 1,  Cantidad 2
+    (9,3),   -- Producto 2, Cantidad 3
+    (10,5);   -- Producto 3, Cantidad 5
+
+Exec Venta.Insertar_VRegistrada 
+@IdPago = 0000003100099475144530, 
+@NumeroFactura = '20955-34799',
+@TipoFactura = 'A',
+@Fecha = '2020-02-20',
+@Hora = '2020',
+@Id_Emp = 257020,
+@Id_Cli = 1,
+@Id_MP = 1,
+@Detalle = @Detalle
+
+go
+
+---Observamos que ahora esta se registra en sucursal 1
+
+select * from Venta.Venta_Registrada
+WHERE Id_Emp = 257020 and Id_Suc = 1
+
 
 Exec Persona.Baja_Empleado 257097; -- Borrado Logico da de baja al empleado
 Go
+
 
 
 --Insertar venta registrada con sus detalles de venta--
@@ -116,7 +153,7 @@ VALUES
 
 Exec Venta.Insertar_VRegistrada 
 @IdPago = 0000003100099475144530, 
-@NumeroFactura = '05255-31799',
+@NumeroFactura = '14255-31799',
 @TipoFactura = 'A',
 @Fecha = '2020-02-20',
 @Hora = '0005',
@@ -127,20 +164,13 @@ Exec Venta.Insertar_VRegistrada
 
 go
 
+select * from VEnta.Venta_Registrada
+select * from Venta.Detalle_Venta
+
 --Borrado logico de una venta registrada mediante su ID de factura
 
 EXEC Venta.Eliminar_VRegistrada
-@NumeroFactura = '05255-97799'
-
-
-
-
-
-
-
-
-
-
+@NumeroFactura = '05255-31799'
 
 
 -- Borrar las tablas para crearlas nuevamente asi se realiza correctamente la importacion

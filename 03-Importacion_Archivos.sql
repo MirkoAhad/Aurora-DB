@@ -593,17 +593,6 @@ BEGIN
 			ELSE 'San Justo'
 			END;
 
-	/*INSERT INTO Venta.Factura(NumeroFactura,Tipo,Monto,EstadoPago)
-		SELECT  tmp.IDFactura, 
-				tmp.TipoFactura, 
-				tmp.Cantidad * PrecioUnitario, 
-				'Pagado'
-		FROM #tmpVentas tmp
-		WHERE NOT EXISTS (
-		 SELECT 1 FROM Venta.Factura f 
-		 WHERE f.NumeroFactura = tmp.IDFactura collate Latin1_General_CI_AI
-			);*/
-
 		INSERT INTO Venta.Venta_Registrada(NumeroFactura,TipoFactura,Monto,EstadoPago,IDPago,Fecha,Hora,ID_Emp,Id_MP,Id_Suc)
 		SELECT tmp.IDFactura, 
 		tmp.TipoFactura, 

@@ -49,6 +49,11 @@ CREATE LOGIN Fernanda_Gisela_Evangelina_Maizares
 	,CHECK_POLICY = on
 go
 
+CREATE LOGIN Romina_Alejandra_Alias -- LOGIN CAJERO
+	WITH PASSWORD = 'Contraseña'
+	,CHECK_POLICY = on
+go
+
 use Com1353G06;
 go
 
@@ -126,10 +131,15 @@ CREATE USER Noelia_Gisela_Fabiola_Maidana FOR LOGIN Noelia_Gisela_Fabiola_Maidan
 go
 CREATE USER Fernanda_Gisela_Evangelina_Maizares FOR LOGIN Fernanda_Gisela_Evangelina_Maizares
 go
-
+CREATE USER Romina_Alejandra_Alias FOR LOGIN Romina_Alejandra_Alias --Cajero
+GO
 -- Creo el Rol Supervisores dandole autorizacion al Jefe.
 CREATE ROLE Supervisores AUTHORIZATION Jefe;
 GO
+
+CREATE ROLE Cajero AUTHORIZATION Jefe;
+GO
+
 --DROP ROLE Supervisores; Si quiero borrar el Rol.
 
 -- Les otorgo los permisos de Insertar datos a la tabla Nota de Credito.
@@ -153,6 +163,8 @@ GO
 GRANT SELECT ON Venta.Nota_De_Credito TO Supervisores;-- Les permito ver las notas de crédito generadas.
 GO
 
+GRANT INSERT ON Venta.Venta_Registrada TO Cajero;
+GO
 
 -- Agrego a los miembros al Rol de Supervisores.
 
@@ -169,6 +181,10 @@ go
 ALTER ROLE Supervisores ADD MEMBER Fernanda_Gisela_Evangelina_Maizares;
 go
 
+--Agrego el miembro al rol de cajero
+
+ALTER ROLE Cajero ADD MEMBER Romina_Alejandra_Alias;
+go
 
 										-- Logueo de usuarios del Rol de Supervisores --
 
@@ -228,11 +244,20 @@ GO
 REVERT; -- El Revert para desloguearme.
 GO
 
+-- Loguearse como un cajero. No me permite hacer una nota de credito ya que no tengo los permisos
+EXECUTE AS LOGIN = 'Romina_Alejandra_Alias';
+GO
+EXEC Venta.GenerarNotaCredito 16,'299-46-1805' ,4.14, '2029-02-27';  -- La Supervisora Fernanda Gisela puede generar Nota de Credito.
+Go
+EXEC Venta.GenerarNotaCredito 7,'355-53-5943' ,5.70, '2025-02-27'; -- Si se vuelve a generar con el mismo Id no puede haber repetidos.
+GO
+REVERT; -- El Revert para desloguearme.
+GO
+
 -- Me Logueo con cualquier Supervisor:
 
 EXECUTE AS LOGIN = 'Fernanda_Gisela_Evangelina_Maizares';
 GO
-
 select* from Venta.Venta_Registrada; --Cualquier Supervisor puede revisar las facturas.
 GO
 select *
@@ -240,10 +265,25 @@ from venta.Nota_De_Credito;   -- Cualquier Supervisor puede verificar con el sel
 GO
 Delete Venta.Nota_De_Credito; -- No pueden borrar los datos de la Nota de Credito.
 GO
+
+--Insertar con ID De venta
 INSERT VENTA.Nota_De_Credito VALUES ('2022-02-02',2.25,2,'226-31-3212',257021) -- Si siendo supervisor pongo cualquier dato sin el SP no puede insertar datos
 GO
 REVERT; -- El Revert para desloguearme.
 GO
+
+
+-- Me logueo como cajero y no tengo el acceso a todas las ventas
+EXECUTE AS LOGIN = 'Romina_Alejandra_Alias';
+GO
+select * from Venta.Nota_De_Credito --Cualquier Supervisor puede revisar las notas de credito, PERO no un cajero.
+GO
+select* from Venta.Venta_Registrada; --Cualquier Supervisor puede revisar las facturas, PERO no un cajero.
+GO
+REVERT
+GO
+
+
 
 
 

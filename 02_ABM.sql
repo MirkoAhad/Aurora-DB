@@ -357,7 +357,6 @@ CREATE OR ALTER PROCEDURE Venta.Insertar_VRegistrada
 @Id_Cli int = NULL,
 @Id_MP int = NULL,
 @Detalle Venta.Detalle_Venta_Tipo READONLY -- Tabla para los productos de detalle_Venta
---@Id_Venta int OUTPUT --me devuelve el ID venta para luego usarlo en detalle venta
 
 AS
 BEGIN
@@ -367,9 +366,20 @@ SET NOCOUNT ON;
 IF NOT EXISTS (Select 1 From Venta.Venta_Registrada Where NumeroFactura = @NumeroFactura)
 	BEGIN
 		--Inserto la venta SIN MONTO
-		insert Venta.Venta_Registrada (IdPago,NumeroFactura,TipoFactura,Fecha,Hora,Id_Emp,Id_Cli,Id_MP)
-		values (@IdPago,@NumeroFactura,@TipoFactura,@Fecha,@Hora,@Id_Emp,@Id_Cli,@Id_MP);
-		
+		INSERT INTO Venta.Venta_Registrada(IdPago,NumeroFactura,TipoFactura,Fecha,Hora,Id_Emp,Id_Cli,Id_MP,Id_Suc)
+		SELECT
+			@IdPago,
+			@NumeroFactura,
+			@TipoFactura,
+			@Fecha,
+			@Hora,
+			@Id_Emp,
+			@Id_Cli,
+			@Id_MP,
+			Id_Suc
+		FROM persona.Empleado p
+		WHERE p.Legajo = @Id_Emp
+
 		--Obtengo el ID de la venta recien creada
 		declare @Id_Venta INT;
 		set @Id_Venta = SCOPE_IDENTITY();

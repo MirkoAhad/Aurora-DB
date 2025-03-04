@@ -1,9 +1,8 @@
 /*Falta:
--unificar factura y venta LISTO
--Conectar con output detalle_venta y venta_registrada CREO QUE LISTO
-- Si un empleado cambia de sucrursal, que el empleado siga vinculado a las ventas que realizo
--Duplicados clientes  y sucursal
-- Registrar empleados que generan la compra*/
+-- Arreglar hora en insertar venta
+-- Arreglar DER
+-- Arreglar insercion de NC (con IDVenta, no numerofactura)
+-*/
 
 -- Grupo:06
 -- Chacón Mirko Facundo - 43444942
@@ -184,8 +183,7 @@ CREATE TABLE Venta.Nota_De_Credito (
     Fecha DATE NOT NULL,
     Monto Decimal(17,2) NOT NULL,
     Id_Venta INT NOT NULL unique,
-    Numero_Factura CHAR(11) NOT NULL UNIQUE,
-   Creado_Por varchar(40) default current_user, --Empleado que genera la nota de credito.
+	Creado_Por varchar(40) default current_user, --Empleado que genera la nota de credito.
     CONSTRAINT FK_Venta FOREIGN KEY (Id_Venta) REFERENCES Venta.Venta_Registrada(Id) ON DELETE CASCADE,
 );
 

@@ -65,6 +65,7 @@ BEGIN
 		FROM Venta.Venta_Registrada vr
 		WHERE month(vr.fecha) = @mes AND year(vr.fecha) = @anio
 		GROUP BY DATENAME(WEEKDAY, vr.fecha)
+		ORDER BY total_facturado desc
 		FOR XML PATH('dia'), ROOT('facturacionMensual');
 END;
 go
@@ -168,7 +169,7 @@ BEGIN
 		WHERE MONTH(vr.Fecha) = @mes AND YEAR(vr.Fecha) = @anio
 			GROUP BY dv.Id_Prod, p.Nombre
 	)
-	SELECT 
+	SELECT top 5
 		Producto,
 		Total_Vendido
 	FROM ProductosMenosVendidos
