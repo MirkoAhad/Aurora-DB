@@ -60,7 +60,6 @@ go
 
 CREATE OR ALTER PROCEDURE Venta.GenerarNotaCredito -- Es un SP que me permite generar las notas de crédito.
     @id_VenR int,
-	@Num_Factura CHAR(11),
     @Monto DECIMAL(17,2),
     @Fecha DATE
 AS
@@ -96,17 +95,13 @@ BEGIN
     RETURN;
 END
 	
-	IF EXISTS (SELECT 1 FROM Venta.Nota_De_Credito WHERE Numero_Factura = @Num_Factura)
-BEGIN
-    RAISERROR('Ya existe una Nota de Crédito con este número de factura.', 16, 1);
-    RETURN;
-END
+
 
 
 	BEGIN
     -- Insertar la nota de crédito
-    INSERT INTO Venta.Nota_De_Credito (Fecha, Monto, Id_Venta, Numero_Factura,Creado_Por)
-    VALUES (@Fecha, @Monto, @id_VenR,@Num_Factura,current_user);
+    INSERT INTO Venta.Nota_De_Credito (Fecha, Monto, Id_Venta,Creado_Por)
+    VALUES (@Fecha, @Monto, @id_VenR,current_user);
 	
 
     PRINT 'Nota de crédito generada exitosamente.';
@@ -192,9 +187,9 @@ go
 -- Loguearse como Francisco_Emmanuel_Lucena
 EXECUTE AS LOGIN = 'Francisco_Emmanuel_Lucena';
 GO
-exec venta.GenerarNotaCredito 2,'226-31-3081',6.25,'2025-02-02'; -- El Supervisor Francisco Emmanuel puede generar Nota de Credito.
+exec venta.GenerarNotaCredito 2,6.25,'2025-02-02'; -- El Supervisor Francisco Emmanuel puede generar Nota de Credito.
 GO
-exec venta.GenerarNotaCredito 2,'226-31-3081',6.25,'2025-02-02'; -- Como el monto no coincide con el monto de la factura y el id ya esta cargado no se puede generar la nota de crédito.
+exec venta.GenerarNotaCredito 2,6.25,'2025-02-02'; -- Como el monto no coincide con el monto de la factura y el id ya esta cargado no se puede generar la nota de crédito.
 GO
 REVERT; -- El Revert para desloguearme.
 GO
@@ -202,7 +197,7 @@ GO
 -- Loguearse como Eduardo_Matias_Luna
 EXECUTE AS LOGIN = 'Eduardo_Matias_Luna';  -- El Supervisor Eduardo Matias puede generar Nota de Credito.
 GO
-EXEC Venta.GenerarNotaCredito 3,' 631-41-3108',8.40, '2025-02-27'; 
+EXEC Venta.GenerarNotaCredito 3,8.40, '2025-02-27'; 
 GO
 REVERT;
 GO
@@ -210,18 +205,18 @@ GO
 -- Loguearse como Mauro_Alberto_Luna
 EXECUTE AS LOGIN = 'Mauro_Alberto_Luna';
 GO
-EXEC Venta.GenerarNotaCredito 4,'123-19-1176' ,10.40, '2025-02-27';  -- El Supervisor Mauro Alberto puede generar Nota de Credito.
+EXEC Venta.GenerarNotaCredito 4,10.40, '2025-02-27';  -- El Supervisor Mauro Alberto puede generar Nota de Credito.
 GO
-EXEC Venta.GenerarNotaCredito 4,'123-19-1176' ,12.40, '2025-02-27';  -- No se puede generar porque el monto no coincide al de la Factura.
+EXEC Venta.GenerarNotaCredito 4,12.40, '2025-02-27';  -- No se puede generar porque el monto no coincide al de la Factura.
 REVERT; -- El Revert para desloguearme.
 GO
 
 -- Loguearse como Emilce_Maidana
 EXECUTE AS LOGIN = 'Emilce_Maidana';
 GO
-EXEC Venta.GenerarNotaCredito 5,'373-73-7910' ,13.30, '2025-02-27'; -- El Supervisor Emilce Maidana puede generar Nota de Credito.
+EXEC Venta.GenerarNotaCredito 5,13.30, '2025-02-27'; -- El Supervisor Emilce Maidana puede generar Nota de Credito.
 GO
-EXEC Venta.GenerarNotaCredito 5,'373-73-7910' ,13.30, '2025-02-27'; -- No se puede generar porque no debe haber repetidos.
+EXEC Venta.GenerarNotaCredito 5,13.30, '2025-02-27'; -- No se puede generar porque no debe haber repetidos.
 
 REVERT; -- El Revert para desloguearme.
 GO
@@ -229,7 +224,7 @@ GO
 -- Loguearse como Noelia_Gisela_Fabiola_Maidana
 EXECUTE AS LOGIN = 'Noelia_Gisela_Fabiola_Maidana'; 
 GO
-EXEC Venta.GenerarNotaCredito 6,'699-14-3026' ,15.40, '2025-02-27';  -- La Supervisora Fernanda Gisela puede generar Nota de Credito.
+EXEC Venta.GenerarNotaCredito 6,15.40, '2025-02-27';  -- La Supervisora Fernanda Gisela puede generar Nota de Credito.
 GO
 REVERT; -- El Revert para desloguearme.
 GO
@@ -237,9 +232,9 @@ GO
 -- Loguearse como Fernanda_Gisela_Evangelina_Maizares
 EXECUTE AS LOGIN = 'Fernanda_Gisela_Evangelina_Maizares';
 GO
-EXEC Venta.GenerarNotaCredito 7,'355-53-5943' ,5.70, '2025-02-27';  -- La Supervisora Fernanda Gisela puede generar Nota de Credito.
+EXEC Venta.GenerarNotaCredito 7,5.70, '2025-02-27';  -- La Supervisora Fernanda Gisela puede generar Nota de Credito.
 Go
-EXEC Venta.GenerarNotaCredito 7,'355-53-5943' ,5.70, '2025-02-27'; -- Si se vuelve a generar con el mismo Id no puede haber repetidos.
+EXEC Venta.GenerarNotaCredito 7,5.70, '2025-02-27'; -- Si se vuelve a generar con el mismo Id no puede haber repetidos.
 GO
 REVERT; -- El Revert para desloguearme.
 GO
@@ -247,9 +242,9 @@ GO
 -- Loguearse como un cajero. No me permite hacer una nota de credito ya que no tengo los permisos
 EXECUTE AS LOGIN = 'Romina_Alejandra_Alias';
 GO
-EXEC Venta.GenerarNotaCredito 16,'299-46-1805' ,4.14, '2029-02-27';  -- La Supervisora Fernanda Gisela puede generar Nota de Credito.
+EXEC Venta.GenerarNotaCredito 16,4.14, '2029-02-27';  -- La Supervisora Fernanda Gisela puede generar Nota de Credito.
 Go
-EXEC Venta.GenerarNotaCredito 7,'355-53-5943' ,5.70, '2025-02-27'; -- Si se vuelve a generar con el mismo Id no puede haber repetidos.
+EXEC Venta.GenerarNotaCredito 7,5.70, '2025-02-27'; -- Si se vuelve a generar con el mismo Id no puede haber repetidos.
 GO
 REVERT; -- El Revert para desloguearme.
 GO
@@ -267,7 +262,7 @@ Delete Venta.Nota_De_Credito; -- No pueden borrar los datos de la Nota de Credit
 GO
 
 --Insertar con ID De venta
-INSERT VENTA.Nota_De_Credito VALUES ('2022-02-02',2.25,2,'226-31-3212',257021) -- Si siendo supervisor pongo cualquier dato sin el SP no puede insertar datos
+INSERT VENTA.Nota_De_Credito VALUES ('2022-02-02',2.25,2,257021) -- Si siendo supervisor pongo cualquier dato sin el SP no puede insertar datos
 GO
 REVERT; -- El Revert para desloguearme.
 GO
@@ -282,8 +277,6 @@ select* from Venta.Venta_Registrada; --Cualquier Supervisor puede revisar las fa
 GO
 REVERT
 GO
-
-
 
 
 
