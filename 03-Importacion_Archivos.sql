@@ -483,6 +483,47 @@ GO
 
 
 --IMPORTAMOS VENTAS REGISTRADAS--
+CREATE OR ALTER PROCEDURE Venta.MediodePagoImportar
+	@data_file_path VARCHAR(MAX)
+AS
+BEGIN
+		BEGIN TRY
+
+			IF OBJECT_ID('tempdb..#tmpMedio') IS NOT NULL
+				DROP TABLE #tmpMedio;
+
+			CREATE TABLE #tmpMedio (
+				Vacio VARCHAR(30) NULL,
+				Ingles VARCHAR(30),
+				Español VARCHAR(30))
+
+			SET NOCOUNT ON;
+
+			DECLARE @sql NVARCHAR(MAX);
+
+			SET @sql = '
+				INSERT INTO #tmpMedio(Vacio,Ingles,Español)
+				SELECT * 
+				FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'',
+				 ''Excel 12.0;Database='++ @data_file_path ++''',
+				 ''select * from [medios de pago$]'');
+			';
+			EXEC sp_executesql @sql;
+
+			INSERT INTO Venta.Medio_Pago(nombre)
+				SELECT tmp.Ingles
+				FROM #tmpMedio tmp
+		END TRY
+
+	BEGIN CATCH
+		PRINT 'Error al importar Excel Medios de Pago' + ERROR_MESSAGE();
+	END CATCH
+		DROP TABLE IF EXISTS #tmpMedio;
+END;
+GO
+
+
+--IMPORTAMOS VENTAS REGISTRADAS--
 CREATE OR ALTER PROCEDURE Venta.VentasImportar
 	@data_file_path VARCHAR(MAX)
 AS
@@ -563,7 +604,7 @@ BEGIN
 		 WHERE f.NumeroFactura = tmp.IDFactura collate Latin1_General_CI_AI
 			);*/
 
-		INSERT INTO Venta.Venta_Registrada(NumeroFactura,TipoFactura,Monto,EstadoPago,IDPago,Fecha,Hora,ID_Emp,Id_MP)
+		INSERT INTO Venta.Venta_Registrada(NumeroFactura,TipoFactura,Monto,EstadoPago,IDPago,Fecha,Hora,ID_Emp,Id_MP,Id_Suc)
 		SELECT tmp.IDFactura, 
 		tmp.TipoFactura, 
 		tmp.Cantidad * PrecioUnitario, 
@@ -574,11 +615,15 @@ BEGIN
 		tmp.LegajoEmpleado,
 			(SELECT m.Id_MP
 			FROM Venta.Medio_Pago m
-				WHERE m.Nombre = tmp.MedioPago collate Latin1_General_CI_AI)
+				WHERE m.Nombre = tmp.MedioPago collate Latin1_General_CI_AI),
+				 (SELECT e.Id_Suc
+		 FROM Persona.Empleado e  
+		 WHERE e.Legajo  = tmp.LegajoEmpleado)  -- Si el empleado cambia de sucursal sigue vinculado a la venta.
 		FROM #tmpVentas tmp
 		WHERE NOT EXISTS (
 		 SELECT 1 FROM Venta.Venta_Registrada vr
 		 WHERE  vr.NumeroFactura = tmp.IDFactura collate Latin1_General_CI_AI)
+		
 
 		--- INGRESO SI COINCIDE
 		INSERT INTO Venta.Detalle_Venta(Cantidad, PrecioUnitario, Subtotal, Id_Venta, Id_Prod)
